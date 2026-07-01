@@ -1,0 +1,81 @@
+\section{Experimental Setup}
+\label{sec:blind}
+ACCV reviewing is double blind, in that authors do not know the names of the Area Chairs or reviewers of their papers, and Area Chairs and reviewers should not, beyond reasonable doubt, be able to infer the identities of the authors from the submission or supplementary material.
+You must not identify the authors in the paper or supplementary material. External links must not be used to expand the content under review or to provide material that should instead be included directly in the submission or supplementary files. Code, videos, images, and other media intended for review may be submitted in anonymized form as supplementary material, but should not be provided through external links.
+If you need to cite a different paper of yours that is being submitted concurrently to ACCV, you should \emph{(1)} cite these papers anonymously, \emph{(2)} explain in the body of your paper why your ACCV paper is non-trivially different from these concurrent submissions, and \emph{(3)} include anonymized versions of those papers in the supplementary material.
+Violation of any of these guidelines may lead to rejection without review.
+
+Many authors misunderstand the concept of anonymizing for blind review.
+Blind review does not mean that one must remove citations to one's own work---in fact it is often impossible to review a paper unless the previous citations are known and available.
+
+Blind review means that you do not use the words ``my'' or ``our'' when citing previous work.
+That is all.
+(But see below for tech reports.)
+
+Saying ``this builds on the work of Lucy Smith [1]'' does not say that you are Lucy Smith;
+it says that you are building on her work.
+If you are Smith and Jones, do not say ``as we show in [7]'', say ``as Smith and Jones show in [7]'' and at the end of the paper, include reference 7 as you would any other cited work.
+
+An example of a bad paper just asking to be rejected:
+\begin{quote}
+  \begin{center}
+      An analysis of the frobnicatable foo filter.
+  \end{center}
+
+   In this paper we present a performance analysis of our previous paper [1], and show it to be inferior to all previously known methods.
+   Why the previous paper was accepted without this analysis is beyond me.
+
+   [1] Removed for blind review
+\end{quote}
+
+An example of an acceptable paper:
+\begin{quote}
+  \begin{center}
+     An analysis of the frobnicatable foo filter.
+  \end{center}
+
+   In this paper we present a performance analysis of the  paper of Smith \etal [1], and show it to be inferior to all previously known methods.
+   Why the previous paper was accepted without this analysis is beyond me.
+
+   [1] Smith, L and Jones, C. ``The frobnicatable foo filter, a fundamental contribution to human knowledge''. Nature 381(12), 1-213.
+\end{quote}
+
+If you are making a submission to another conference at the same time, which covers similar or overlapping material, you may need to refer to that submission in order to explain the differences, just as you would if you had previously published related work.
+In such cases, include the anonymized parallel submission [1] as supplemental material and cite it as
+\begin{quote}
+  [1] Authors. ``The frobnicatable foo filter'', ACCV \ACCVyear Submission ID 00324, Supplied as supplemental material {\tt 00324.pdf}.
+\end{quote}
+
+Finally, you may feel the need to indicate that additional details exist elsewhere, such as in a technical report.
+For conference submissions, however, the paper must stand on its own and must not require reviewers to consult outside material in order to evaluate the submission.
+If additional supporting material is necessary, it should be provided in anonymized form as supplementary material rather than through an external link.
+Again, you may not assume that reviewers will read supplementary material.
+
+Sometimes your paper is about a problem, which you tested using a tool that is widely known to be restricted to a single institution.
+For example, let's say it's 1969, you have solved a key problem on the Apollo lander, and you believe that the ACCV audience would like to hear about your
+solution.
+The work is a development of your celebrated 1968 paper entitled ``Zero-g frobnication: How being the only people in the world with access to the Apollo lander source code makes us a wow at parties'', by Zeus \etal.
+
+You can handle this paper like any other.
+Do not write ``We show how to improve our previous work [Anonymous, 1968].
+This time we tested the algorithm on a lunar lander [name of lander removed for blind review]''.
+That would be silly, and would immediately identify the authors.
+Instead write the following:
+\begin{quotation}
+   We describe a system for zero-g frobnication.
+   This system is new because it handles the following cases:
+   A, B.  Previous systems [Zeus et al. 1968] did not  handle case B properly.
+   Ours handles it by including a foo term in the bar integral.
+
+   ...
+
+   The proposed system was integrated with the Apollo lunar lander, and went all the way to the moon, don't you know.
+   It displayed the following behaviours, which show how well we solved cases A and B: ...
+\end{quotation}
+As you can see, the above text follows standard scientific convention, reads better than the first version, and does not explicitly name you as the authors.
+A reviewer might think it likely that the new paper was written by Zeus \etal, but cannot make any decision based on that guess.
+He or she would have to be sure that no other authors could have been contracted to solve problem B.
+
+For sake of anonymity, authors must omit acknowledgements in the review copy. 
+They can be added later when you prepare the final copy.
+
