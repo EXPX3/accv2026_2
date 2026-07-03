@@ -1,81 +1,77 @@
+% ============================================================================
+% Experimental Setup section updated with Pose-MVS and Pose-MVS-FiLM FoundationSSC variants.
+% Requires: amsmath, amssymb. Optional: booktabs if the table is kept.
+% ============================================================================
+
 \section{Experimental Setup}
-\label{sec:blind}
-ACCV reviewing is double blind, in that authors do not know the names of the Area Chairs or reviewers of their papers, and Area Chairs and reviewers should not, beyond reasonable doubt, be able to infer the identities of the authors from the submission or supplementary material.
-You must not identify the authors in the paper or supplementary material. External links must not be used to expand the content under review or to provide material that should instead be included directly in the submission or supplementary files. Code, videos, images, and other media intended for review may be submitted in anonymized form as supplementary material, but should not be provided through external links.
-If you need to cite a different paper of yours that is being submitted concurrently to ACCV, you should \emph{(1)} cite these papers anonymously, \emph{(2)} explain in the body of your paper why your ACCV paper is non-trivially different from these concurrent submissions, and \emph{(3)} include anonymized versions of those papers in the supplementary material.
-Violation of any of these guidelines may lead to rejection without review.
 
-Many authors misunderstand the concept of anonymizing for blind review.
-Blind review does not mean that one must remove citations to one's own work---in fact it is often impossible to review a paper unless the previous citations are known and available.
+\subsection{Dataset and Tasks}
+We evaluate on OccuFly~\cite{gross2026occufly} for monocular metric depth estimation and semantic scene completion (SSC). 
+For the standard protocol, we use scenes 01--05 for training, scenes 06--07 for validation, and scenes 08--09 for testing, across altitudes of 30, 40, and 50 m. 
+The standard depth split contains 14,804 training frames, 1,965 validation frames, and 3,842 test frames. 
+RGB inputs are resized to $384 \times 384$. 
+Depth values are represented in meters, clipped to $[0.001,80]$, and evaluated only over finite positive pixels that remain valid after mask-aware resizing.
 
-Blind review means that you do not use the words ``my'' or ``our'' when citing previous work.
-That is all.
-(But see below for tech reports.)
+For SSC, OccuFly labels are defined on a voxel grid of shape $192 \times 128 \times 128$ in WHD order. 
+The grid spans $x\in[-48,48]$ m, $y\in[-32,32]$ m, and $z\in[0,64]$ m, corresponding to a voxel size of 0.5 m. 
+Class 0 denotes empty/free space, and label 255 denotes invalid or unknown voxels ignored by the loss and metrics. 
+FoundationSSC-style runs use the active SSC output taxonomy configured for the run; in the raw-ID-compatible OccuFly setting this corresponds to raw output slots $0,\ldots,36$, while CGFormer-style reporting remaps raw IDs to an empty-plus-occupied semantic taxonomy before computing semantic mIoU.
 
-Saying ``this builds on the work of Lucy Smith [1]'' does not say that you are Lucy Smith;
-it says that you are building on her work.
-If you are Smith and Jones, do not say ``as we show in [7]'', say ``as Smith and Jones show in [7]'' and at the end of the paper, include reference 7 as you would any other cited work.
+\subsection{Depth Estimation Models}
+All V-JEPA-based depth experiments use a frozen V-JEPA2.1~\cite{murlabadia2026vjepa21} ViT-G/16 backbone unless otherwise stated. 
+For $384 \times 384$ inputs, the patch size of 16 gives a $24 \times 24$ spatial patch grid. 
+We evaluate five depth model families.
 
-An example of a bad paper just asking to be rejected:
-\begin{quote}
-  \begin{center}
-      An analysis of the frobnicatable foo filter.
-  \end{center}
+First, the linear-probe baseline applies a DINOv3-style~\cite{simeoni2025dinov3} BatchNorm and $1\times1$ convolutional head to frozen V-JEPA features and predicts 256 depth-bin channels. 
+Second, the image DPT-FiLM decoder uses frozen V-JEPA features from layers 11, 23, 37, and 47, a DPT~\cite{ranftl2021dpt} feature width of 256, and metadata conditioning through feature-wise linear modulation (FiLM)~\cite{perez2018film}. 
+Third, the final-layer SFP DPT-FiLM variant replaces the four intermediate V-JEPA layers with a simple feature pyramid inspired by ViTDet~\cite{li2022vitdet}, constructed from the final V-JEPA layer using scale factors $4,2,1,0.5$. 
+Fourth, the video spatio-temporal linear probe (ST-LP) uses four-frame clips and preserves V-JEPA tubelet information by concatenating temporal tubelet features before a linear depth head. 
+Finally, the video DPT-FiLM model uses four-frame clips and dense temporal attention over V-JEPA tubelet features at each selected layer.
 
-   In this paper we present a performance analysis of our previous paper [1], and show it to be inferior to all previously known methods.
-   Why the previous paper was accepted without this analysis is beyond me.
+\subsection{Altitude Interpolation Protocol}
+In addition to the standard scene split, we evaluate an altitude interpolation stress test. 
+This protocol trains on 30 m and 50 m samples from scenes 01--08, validates on 40 m samples from scenes 01--04, and tests on 40 m samples from scenes 05--08. 
+The resulting split contains 11,493 training samples, 3,510 validation samples, and 2,648 test samples. 
+This setting evaluates whether the model can interpolate to an unseen intermediate altitude rather than only generalize across held-out scenes.
 
-   [1] Removed for blind review
-\end{quote}
+\subsection{Semantic Scene Completion Models}
+For SSC, we compare CGFormer-based baselines~\cite{yu2024cgformer}, monocular V-JEPA/FoundationSSC hybrids~\cite{chen2025foundationssc}, a Pose-MVS-Cost-Volume FoundationSSC variant, and a Pose-MVS-FiLM FoundationSSC variant. 
+The monocular hybrid architecture combines frozen V-JEPA image features, a DPT-FiLM depth and depth-probability head, semantic context features, Lift-Splat-Shoot-style frustum-to-voxel lifting~\cite{philion2020lss}, FoundationSSC-style 3D fusion, and an SSC decoder. 
+This branch evaluates whether single-image V-JEPA depth uncertainty is sufficient to guide aerial semantic occupancy prediction.
 
-An example of an acceptable paper:
-\begin{quote}
-  \begin{center}
-     An analysis of the frobnicatable foo filter.
-  \end{center}
+The Pose-MVS-Cost-Volume FoundationSSC variant replaces the monocular depth-probability frontend with an explicit pose-aware multiview stereo cost-volume estimator~\cite{yao2018mvsnet}. 
+For each target frame, the model uses a target-centered context clip and $N_s=2$ posed source views by default. 
+The source branch encodes target and source clips separately with the frozen V-JEPA video backbone, applies dense temporal attention within each view, preserves view identity, and constructs a projective depth-plane cost volume from the target/source features, resized intrinsics, and world-to-camera poses. 
+The cost volume is regularized by a lightweight 3D CNN and converted into a categorical depth-probability tensor $P_t^{D,\mathrm{MVS}}\in\mathbb{R}^{256\times48\times48}$ and dense depth expectation $\hat{D}_t^{\mathrm{MVS}}\in\mathbb{R}^{1\times48\times48}$. 
+These outputs are passed to the same FoundationSSC lifting, proposal, 3D fusion, and SSC decoder used by the monocular hybrid. 
+This design isolates the effect of calibrated multiview correspondence while keeping the downstream voxel geometry and decoder fixed.
 
-   In this paper we present a performance analysis of the  paper of Smith \etal [1], and show it to be inferior to all previously known methods.
-   Why the previous paper was accepted without this analysis is beyond me.
+The Pose-MVS-FiLM variant keeps the same projective cost-volume geometry but adds altitude/intrinsics FiLM conditioning~\cite{perez2018film} directly to the MVS depth output. 
+It encodes the metadata vector $[h_{\mathrm{norm}}, f_x/W, f_y/H, c_x/W-0.5, c_y/H-0.5]$ with the same metadata contract used by DPT-FiLM, then applies FiLM to the upsampled MVS depth-bin logits before the softmax over depth. 
+The dense depth supplied to FoundationSSC is computed as the expectation of this same FiLM-conditioned probability distribution, ensuring that the probability volume used by LSS and the metric depth map used by voxel proposal remain geometrically consistent. 
+The FiLM affine projection is zero-initialized, so the initial model is equivalent to the unconditioned Pose-MVS branch and can learn altitude- or calibration-dependent corrections during SSC training.
 
-   [1] Smith, L and Jones, C. ``The frobnicatable foo filter, a fundamental contribution to human knowledge''. Nature 381(12), 1-213.
-\end{quote}
+We evaluate ablations covering depth-prior choice, monocular-depth-estimation warm-starting, FoundationSSC geometry correction, semantic loss reweighting, Pose-MVS cost-volume depth estimation, and Pose-MVS-FiLM output conditioning.
 
-If you are making a submission to another conference at the same time, which covers similar or overlapping material, you may need to refer to that submission in order to explain the differences, just as you would if you had previously published related work.
-In such cases, include the anonymized parallel submission [1] as supplemental material and cite it as
-\begin{quote}
-  [1] Authors. ``The frobnicatable foo filter'', ACCV \ACCVyear Submission ID 00324, Supplied as supplemental material {\tt 00324.pdf}.
-\end{quote}
+\subsection{Training Details}
+Depth models are trained with AdamW and a masked scale-invariant depth loss unless otherwise specified. 
+The linear probe is trained for 20 epochs with learning rate $1.5\times10^{-3}$, weight decay $10^{-3}$, gradient clipping at 35, batch size 1 per GPU, and 8-GPU distributed data parallel training. 
+The ST-LP model is trained for 20 epochs with learning rate $3\times10^{-4}$, weight decay $10^{-4}$, batch size 1 per GPU, and 8 GPUs. 
+The image DPT-FiLM and SFP DPT-FiLM models are trained for 20 epochs with gradient clipping at 35. 
+The video DPT-FiLM model is trained for 30 epochs with eight temporal-attention heads.
 
-Finally, you may feel the need to indicate that additional details exist elsewhere, such as in a technical report.
-For conference submissions, however, the paper must stand on its own and must not require reviewers to consult outside material in order to evaluate the submission.
-If additional supporting material is necessary, it should be provided in anonymized form as supplementary material rather than through an external link.
-Again, you may not assume that reviewers will read supplementary material.
+SSC hybrids use AdamW parameter groups for the depth, context-DPT, context, view-transformation, and decoder modules. 
+Unless otherwise stated, SSC training uses cosine learning-rate scheduling with one warmup epoch, and checkpoints are selected using validation SSC mIoU, occupied IoU, and depth RMSE. 
+For the Pose-MVS and Pose-MVS-FiLM variants, the V-JEPA video backbone is frozen, while the MVS cost-volume head, depth metadata encoder, depth temporal adapters, context temporal adapters, context DPT-FiLM head, context adapter, view-transformation modules, and SSC decoder are trainable unless disabled by an ablation. 
+The default Pose-MVS-FiLM configuration uses video input, four-frame clips, real temporal context, two source views, world-to-camera poses, 64 MVS matching channels, 16 cost-volume regularizer channels, 256 depth bins, target downsampling by 8, batch size 1 per GPU, 20 epochs, depth learning rate $10^{-4}$, depth weight decay $10^{-4}$, and learning rate $3\times10^{-4}$ for context-DPT, context, view, and decoder groups.
 
-Sometimes your paper is about a problem, which you tested using a tool that is widely known to be restricted to a single institution.
-For example, let's say it's 1969, you have solved a key problem on the Apollo lander, and you believe that the ACCV audience would like to hear about your
-solution.
-The work is a development of your celebrated 1968 paper entitled ``Zero-g frobnication: How being the only people in the world with access to the Apollo lander source code makes us a wow at parties'', by Zeus \etal.
+All experiments are run on an NVIDIA DGX node with 8 NVIDIA H100 80GB GPUs. 
+We omit private hostnames, usernames, absolute paths, and local checkpoint directories for double-blind review.
 
-You can handle this paper like any other.
-Do not write ``We show how to improve our previous work [Anonymous, 1968].
-This time we tested the algorithm on a lunar lander [name of lander removed for blind review]''.
-That would be silly, and would immediately identify the authors.
-Instead write the following:
-\begin{quotation}
-   We describe a system for zero-g frobnication.
-   This system is new because it handles the following cases:
-   A, B.  Previous systems [Zeus et al. 1968] did not  handle case B properly.
-   Ours handles it by including a foo term in the bar integral.
-
-   ...
-
-   The proposed system was integrated with the Apollo lunar lander, and went all the way to the moon, don't you know.
-   It displayed the following behaviours, which show how well we solved cases A and B: ...
-\end{quotation}
-As you can see, the above text follows standard scientific convention, reads better than the first version, and does not explicitly name you as the authors.
-A reviewer might think it likely that the new paper was written by Zeus \etal, but cannot make any decision based on that guess.
-He or she would have to be sure that no other authors could have been contracted to solve problem B.
-
-For sake of anonymity, authors must omit acknowledgements in the review copy. 
-They can be added later when you prepare the final copy.
-
+\subsection{Evaluation Metrics}
+For depth estimation, we report RMSE, AbsRel, and log-RMSE over valid pixels. 
+For video depth models, we additionally report $\delta_1$, $\delta_2$, and $\delta_3$ threshold accuracies. 
+For SSC, we report occupied IoU, semantic mIoU over occupied semantic classes, class-wise IoU, and altitude-stratified metrics where applicable. 
+For Pose-MVS variants, depth metrics are computed on the target frame from the cost-volume depth expectation, and SSC metrics are computed on the target-frame voxel grid using the same protocol as the monocular SSC models. 
+We also log MVS diagnostic quantities such as valid-warp fraction and source-view count to identify pose, intrinsics, or overlap failures. 
+For the Pose-MVS-FiLM variant, we additionally verify that the FiLM-conditioned depth probability is normalized over depth and that the dense depth equals the expectation under the conditioned probability distribution.
