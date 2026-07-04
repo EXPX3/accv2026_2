@@ -9,16 +9,29 @@
 \section{Method}
 \label{sec:method}
 
-This section describes our evaluation framework for transferring frozen V-JEPA~2.1 features to aerial metric depth estimation and depth-aware semantic scene completion (SSC).  The method is intentionally organized as a sequence of probes and progressively more structured decoders.  This design separates four factors that are often confounded in end-to-end training: (i) the amount of aerial geometry already encoded in the frozen foundation representation, (ii) the decoder structure required to recover dense metric predictions from transformer tokens, (iii) the usefulness of predicted depth as a geometric prior for volumetric semantic occupancy, and (iv) whether explicit multiview correspondence improves the 3D prior beyond monocular depth estimation, and (v) whether altitude/intrinsics FiLM conditioning should also modulate the multiview geometry prior.  We use OccuFly~\cite{gross2026occufly} throughout because it provides RGB images, metric depth maps, camera calibration, semantic occupancy grids, and, for the pose-aware MVS branch, per-frame camera poses from real UAV viewpoints.
+This section describes our evaluation framework for transferring frozen V-JEPA~2.1 image-spatial and video-spatiotemporal features to aerial metric depth estimation and semantic scene completion (SSC).  The method starting is intentionally organized as a sequence of probes followed by progressively more structured decoders for evaluating dense feature transfer in both rgb and video variants of vjepa2.1 for aerial MDE, with aim to select the best performer and compare with Occufly dataset Finetuned DAV2 MDE. Decoupled Geometric and Image context layers style SSC paradigm is chosen, specifically CGFormer and FoundationSSC inspired variants as they structurally allow for controlled evaluation on geometric and image context feature contribution for SSC. 
+
+We evaluate if and how far previously selected learned MDE heads, a learnable pose aware Multi View Stereo Depth Estimation head and a learnable image context feature represenattion head with their backbone as frozen vjepa2.1, benifit in improving aerial SSC. Knowing that existing metric MDE models are not generalisable we leverage the fact that UAV pose/altitude and onboard camera intrinsics are usually known or estimated using auxilary systems and evaluate benifits of Feature wise learning based modulation (FiLM) for aerial MDE and indirectly SSC. 
+
+We mathematically formulate the train/eval/test data source, problem statement for MDE and SSC. Followed by description of the adapter/neck needed to make vjepa2.1 features usable by the downstream heads. Then progressively dive deeper into considered MDE heads and SSC variants related sourcing, compatability details followed by answering a questionair that answers what componet or componet combination has helped to benifit aerial SSC?? Which has also motivated the direction of flow of experiments.
+Fig \cref{fig:Evaluation_Overview} outlines the high-level overview of the evaluation frame work, metrics and experiments conducted. Later the same structure will be used to report results obtained. 
+
+
+% We start by finding the best MDE architecture among the listed MDE variants in \cref{fig:Evaluation_Overview}, marked in color green and use it as either geometric prior or as depth estimation component of geometric layer in the chosen SSC variants, While the image context layer   : generation of depth priors in case of CGFormer inspired variant; Depth estimation for FoundationSSC inspired variant,  that    depth prediction  This design separates four factors that are often confounded in end-to-end training: (i) the amount of aerial geometry already encoded in the frozen foundation representation, (ii) the decoder structure required to recover dense metric predictions from transformer tokens, (iii) the usefulness of predicted depth as a geometric prior for volumetric semantic occupancy, and (iv) whether explicit multiview correspondence improves the 3D prior beyond monocular depth estimation, and (v) whether altitude/intrinsics FiLM conditioning should also modulate the multiview geometry prior.  We use OccuFly~\cite{gross2026occufly} throughout because it provides RGB images, metric depth maps, camera calibration, semantic occupancy grids, and, for the pose-aware MVS branch, per-frame camera poses from real UAV viewpoints.
 
 \subsection{Problem Formulation and Notation}
 \label{sec:method_problem}
 
-An OccuFly sample is represented as
+We use Occufly dataset~\cite{gross2026occufly} for all experiments.  The per sample data details used from the dataset is mathematically formulated as follows.
 \begin{equation}
     s_t = \left(I_t, D_t, M_t, Y_t, K_t, h_t, T_t^{w\rightarrow c}\right),
 \end{equation}
-where $I_t \in \mathbb{R}^{3\times H\times W}$ is an RGB frame, $D_t$ is a metric depth map, $M_t \in \{0,1\}^{H\times W}$ is the valid-depth mask, $Y_t$ is the semantic occupancy grid, $K_t$ is the camera intrinsic matrix, $h_t$ is the UAV altitude, and $T_t^{w\rightarrow c}\in\mathbb{R}^{4\times4}$ is the world-to-camera pose used by the multiview-stereo branch when pose supervision is available.  All depth experiments resize images to $384\times384$, which gives a $24\times24$ patch grid for a ViT backbone with patch size 16.  Depth values are clipped to $[d_{\min},d_{\max}]=[10^{-3},80]$ m for metric depth training and evaluation.
+where $I_t \in \mathbb{R}^{3\times H\times W}$ is an RGB frame, $D_t$ is a metric depth map, $M_t \in \{0,1\}^{H\times W}$ is the valid-depth mask, $Y_t$ is the semantic occupancy grid, $K_t$ is the camera intrinsic matrix, $h_t$ is the UAV altitude, and $T_t^{w\rightarrow c}\in\mathbb{R}^{4\times4}$ is the world-to-camera pose.
+
+
+
+
+All depth experiments resize images to $384\times384$, which gives a $24\times24$ patch grid for a ViT backbone with patch size 16.  Depth values are clipped to $[d_{\min},d_{\max}]=[10^{-3},80]$ m for metric depth training and evaluation.
 
 Depth supervision is resized with mask-aware interpolation rather than ordinary interpolation.  Given a depth map $D$ and validity mask $M$, the resized depth and mask are
 \begin{equation}
@@ -136,6 +149,7 @@ then apply the same batch-normalized $1\times1$ depth-bin head as in Eq.~\eqref{
 
 \subsubsection{DPT-FiLM Multiscale Depth Decoder}
 \label{sec:method_dpt_film}
+The DPT-FiLM pipeline replaces the linear head with the DPT decoder implementation applied to frozen V-JEPA~2.1 ViT-G features.  RGB images are resized to $384\times384$, normalized, and encoded by the frozen backbone.  We select layers $\{11,23,37,47\}$; with patch size 16, each selected layer produces a $24\times24$ patch map.  The V-JEPA wrapper exposes these maps in the feature format expected by the DPT decoder, while the backbone remains V-JEPA rather than DINOv3.  DPT reassembly converts the four patch maps into a multiscale feature hierarchy, FiLM injects altitude and camera metadata after reassembly/projection and before fusion, and the final head predicts 256 depth-bin logits that are converted to metric depth.
 
 The structured image decoder follows the Dense Prediction Transformer (DPT) principle of reassembling transformer tokens from multiple layers into image-like feature maps and fusing them with convolutional refinement~\cite{ranftl2021dpt}.  For the four V-JEPA layers in Eq.~\eqref{eq:vjepa_multilayer_features}, each feature map is reassembled and projected to a common decoder width $C_D=256$:
 \begin{equation}
