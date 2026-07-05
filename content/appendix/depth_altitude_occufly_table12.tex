@@ -1,0 +1,31 @@
+\providecolor{bestmiou}{RGB}{255,229,236}
+
+\section{Additional Altitude-Wise Depth Results}
+\label{app:depth_altitude_occufly_table12}
+
+Table~\ref{tab:appendix_occufly_depth_altitude} reports altitude-wise OccuFly depth-estimation results for the fine-tuned Metric3Dv2-OccuFly and DepthAnything2-OccuFly baselines from OccuFly Table~12~\cite{gross2026occufly}.  Light pink marks the best RMSE within each altitude group.
+
+\begin{table*}[t]
+\centering
+\caption{Altitude-wise OccuFly depth-estimation results for Metric3Dv2-OccuFly and DepthAnything2-OccuFly from OccuFly Table~12~\cite{gross2026occufly}.}
+\label{tab:appendix_occufly_depth_altitude}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrrr}
+\toprule
+Altitude & Method & $\delta_1 \uparrow$ & $\delta_2 \uparrow$ & $\delta_3 \uparrow$ & AbsRel $\downarrow$ & RMSE $\downarrow$ & MAE $\downarrow$ & SILog $\downarrow$ \\
+\midrule
+50 m & Metric3Dv2-OccuFly~\cite{gross2026occufly} & 0.283 & 0.831 & 0.987 & 0.379 & 15.373 & 14.950 & 0.099 \\
+50 m & DepthAnything2-OccuFly~\cite{gross2026occufly} & 0.844 & 0.997 & 1.000 & 0.129 & \cellcolor{bestmiou}5.985 & 5.261 & 0.114 \\
+\addlinespace
+40 m & Metric3Dv2-OccuFly~\cite{gross2026occufly} & 0.209 & 0.802 & 0.981 & 0.395 & 13.138 & 12.625 & 0.096 \\
+40 m & DepthAnything2-OccuFly~\cite{gross2026occufly} & 0.795 & 0.957 & 0.998 & 0.148 & \cellcolor{bestmiou}4.486 & 3.823 & 0.119 \\
+\addlinespace
+30 m & Metric3Dv2-OccuFly~\cite{gross2026occufly} & 0.460 & 0.757 & 0.992 & 0.347 & 10.917 & 10.215 & 0.101 \\
+30 m & DepthAnything2-OccuFly~\cite{gross2026occufly} & 0.919 & 0.982 & 0.998 & 0.103 & \cellcolor{bestmiou}3.108 & 2.666 & 0.086 \\
+\addlinespace
+All & Metric3Dv2-OccuFly~\cite{gross2026occufly} & 0.278 & 0.806 & 0.985 & 0.381 & 13.643 & 13.134 & 0.098 \\
+All & DepthAnything2-OccuFly~\cite{gross2026occufly} & 0.834 & 0.976 & 0.999 & 0.134 & \cellcolor{bestmiou}4.844 & 4.193 & 0.112 \\
+\bottomrule
+\end{tabular}
+}
+\end{table*}

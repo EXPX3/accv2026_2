@@ -14,7 +14,7 @@
 \setlength{\emergencystretch}{3em}
 \sloppy
 
-\title{Implementation-Pipeline Audit for OccuFly V-JEPA Depth and Semantic Scene Completion Experiments}
+\title{Implementation-Pipeline Audit for OccuFly V-JEPA 2.1 Depth and Semantic Scene Completion Experiments}
 \author{Pipeline trace generated from local experiment outputs and source code}
 \date{July 2, 2026}
 
@@ -36,7 +36,7 @@
 \maketitle
 
 \section{Scope and Provenance}
-This document traces the implementation pipelines that produced the requested result folders and summarizes them in paper-ready architectural language.  The inspected code paths include the supervised depth scripts in \codepath{experiments_related/scripts}, the video-depth projects in \codepath{experiments_related/vjepa21video_scripts}, the CGFormer comparison package, and the V-JEPA/FoundationSSC semantic scene completion packages in \codepath{experiments_related/scripts_ssc}.  All tensor sizes below refer to the actual OccuFly configuration used in the saved run configurations unless stated otherwise.
+This document traces the implementation pipelines that produced the requested result folders and summarizes them in paper-ready architectural language.  The inspected code paths include the supervised depth scripts in \codepath{experiments_related/scripts}, the video-depth projects in \codepath{experiments_related/vjepa21video_scripts}, the CGFormer comparison package, and the V-JEPA 2.1/FoundationSSC semantic scene completion packages in \codepath{experiments_related/scripts_ssc}.  All tensor sizes below refer to the actual OccuFly configuration used in the saved run configurations unless stated otherwise.
 
 \paragraph{Result folders covered.}
 \begin{itemize}[leftmargin=*]
@@ -46,20 +46,20 @@ This document traces the implementation pipelines that produced the requested re
 \end{itemize}
 
 \paragraph{Common OccuFly protocol.}
-For monocular depth, the standard scene split is train \(\{\texttt{scene\_01},\ldots,\texttt{scene\_05}\}\), validation \(\{\texttt{scene\_06},\texttt{scene\_07}\}\), and test \(\{\texttt{scene\_08},\texttt{scene\_09}\}\), over altitudes \(\{30,40,50\}\) m.  The canonical image resolution is \(384\times384\), patch size is \(16\), V-JEPA2.1 ViT-Gigantic has \(C=1664\) channels and 48 transformer blocks, and the spatial patch grid is \(24\times24\).  Depth is metric and clipped/evaluated in \([0.001,80]\) m.  Invalid depth pixels are finite-masked before resizing; loss and metrics use only valid pixels.
+For monocular depth, the standard scene split is train \(\{\texttt{scene\_01},\ldots,\texttt{scene\_05}\}\), validation \(\{\texttt{scene\_06},\texttt{scene\_07}\}\), and test \(\{\texttt{scene\_08},\texttt{scene\_09}\}\), over altitudes \(\{30,40,50\}\) m.  The canonical image resolution is \(384\times384\), patch size is \(16\), V-JEPA 2.1 ViT-Gigantic has \(C=1664\) channels and 48 transformer blocks, and the spatial patch grid is \(24\times24\).  Depth is metric and clipped/evaluated in \([0.001,80]\) m.  Invalid depth pixels are finite-masked before resizing; loss and metrics use only valid pixels.
 
-\section{Frozen V-JEPA2.1/DINOv3 Mask-Aware Linear Depth Probe}
+\section{Frozen V-JEPA 2.1/DINOv3 Mask-Aware Linear Depth Probe}
 \subsection{High-Level Overview}
-This pipeline is a strict frozen-backbone linear probe for monocular metric depth.  RGB images are encoded by a frozen V-JEPA2.1 ViT-Gigantic backbone, the final dense patch map is passed to a DINOv3-style \(\texttt{SyncBatchNorm}+\texttt{Conv2d}(1\times1)\) linear head, and the 256-channel output is converted to metric depth by \texttt{FeaturesToDepth}.  The result folder \codepath{vjepa21_dinov3_linearprobe_occufly_maskaware_rerun_ddp} was trained with distributed data parallelism, global batch size 8, 20 epochs, and LR/WD sweeps.  The inspected completed point \codepath{lr_1p5e_3__wd_1e_3} uses \(14{,}804\) training samples, \(1{,}965\) validation samples, and \(3{,}842\) test samples.
+This pipeline is a strict frozen-backbone linear probe for monocular metric depth.  RGB images are encoded by a frozen V-JEPA 2.1 ViT-Gigantic backbone, the final dense patch map is passed to a DINOv3-style \(\texttt{SyncBatchNorm}+\texttt{Conv2d}(1\times1)\) linear head, and the 256-channel output is converted to metric depth by \texttt{FeaturesToDepth}.  The result folder \codepath{vjepa21_dinov3_linearprobe_occufly_maskaware_rerun_ddp} was trained with distributed data parallelism, global batch size 8, 20 epochs, and LR/WD sweeps.  The inspected completed point \codepath{lr_1p5e_3__wd_1e_3} uses \(14{,}804\) training samples, \(1{,}965\) validation samples, and \(3{,}842\) test samples.
 
 \paragraph{Implementation paths.}
-The core implementation is \codepath{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}.  The DDP sweep/resume launcher is \codepath{experiments_related/scripts/linearprobe/run_maskaware_occufly_ddp_sweep_resume.sh}, and the altitude/BatchNorm probe variants are documented and launched from \codepath{experiments_related/scripts/linearprobe/README.md} and related \codepath{experiments_related/scripts/linearprobe/train_occufly_dino_linear_bn_*.py} scripts.  The V-JEPA/DINO bridge used by this family is \codepath{experiments_related/scripts/vjepa21_dinov3_depth_adapter.py}.
+The core implementation is \codepath{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}.  The DDP sweep/resume launcher is \codepath{experiments_related/scripts/linearprobe/run_maskaware_occufly_ddp_sweep_resume.sh}, and the altitude/BatchNorm probe variants are documented and launched from \codepath{experiments_related/scripts/linearprobe/README.md} and related \codepath{experiments_related/scripts/linearprobe/train_occufly_dino_linear_bn_*.py} scripts.  The V-JEPA 2.1/DINO bridge used by this family is \codepath{experiments_related/scripts/vjepa21_dinov3_depth_adapter.py}.
 
 \begin{center}
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[node distance=8mm, every node/.style={draw, rounded corners, align=center, font=\small, minimum height=7mm}, >=Latex]
 \node (rgb) {RGB image\\\(I\in\R^{B\times3\times384\times384}\)};
-\node[right=of rgb] (vj) {Frozen V-JEPA2.1\\ViT-G/16};
+\node[right=of rgb] (vj) {Frozen V-JEPA 2.1\\ViT-G/16};
 \node[right=of vj] (feat) {Patch map\\\(F\in\R^{B\times1664\times24\times24}\)};
 \node[right=of feat] (head) {DINOv3 linear head\\BN + \(1\times1\) conv};
 \node[right=of head] (logits) {Depth-bin logits\\\(Z\in\R^{B\times256\times24\times24}\)};
@@ -93,9 +93,9 @@ M'=\mathrm{resize}(M)>\tau .
 \]
 The training criterion is masked scale-invariant depth loss (\texttt{SIGLOSS}) and metrics include RMSE, AbsRel, and log-RMSE over \(M'\).
 
-\section{V-JEPA2.1 Video Spatio-Temporal Linear Probe (\stlp)}
+\section{V-JEPA 2.1 Video Spatio-Temporal Linear Probe (\stlp)}
 \subsection{Definition of ST-LP}
-\textbf{\stlp} means \textbf{Spatio-Temporal Linear Probe}.  It is the video-mode analogue of the image linear depth probe, but it preserves the V-JEPA video tubelet axis instead of averaging it.  The folder \codepath{vjepa21video_features_depth/real_stlp__clip4} uses target-centered real clips with four RGB frames.  The backbone is frozen, selected layer is the final V-JEPA layer \(47\), and the saved run reports 858,880 trainable decoder parameters.
+\textbf{\stlp} means \textbf{Spatio-Temporal Linear Probe}.  It is the video-mode analogue of the image linear depth probe, but it preserves the V-JEPA 2.1 video tubelet axis instead of averaging it.  The folder \codepath{vjepa21video_features_depth/real_stlp__clip4} uses target-centered real clips with four RGB frames.  The backbone is frozen, selected layer is the final V-JEPA 2.1 layer \(47\), and the saved run reports 858,880 trainable decoder parameters.
 
 \paragraph{Implementation paths.}
 The video ST-LP project lives under \codepath{experiments_related/vjepa21video_scripts}.  The main trainer is \codepath{experiments_related/vjepa21video_scripts/scripts/train_stlp_depth.py}; the sequential ablation runner is \codepath{experiments_related/vjepa21video_scripts/scripts/run_all_stlp_experiments.py}; and the implementation modules are \codepath{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/depth_heads.py}, \codepath{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/vjepa_backbone.py}, \codepath{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/occufly_data.py}, and \codepath{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/losses_metrics.py}.
@@ -104,7 +104,7 @@ The video ST-LP project lives under \codepath{experiments_related/vjepa21video_s
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[node distance=7mm, every node/.style={draw, rounded corners, align=center, font=\small, minimum height=7mm}, >=Latex]
 \node (clip) {RGB clip\\\(X\in\R^{B\times3\times4\times384\times384}\)};
-\node[right=of clip] (enc) {Frozen V-JEPA2.1\\video encoder};
+\node[right=of clip] (enc) {Frozen V-JEPA 2.1\\video encoder};
 \node[right=of enc] (grid) {Raw grid\\\(G\in\R^{B\times1664\times2\times24\times24}\)};
 \node[right=of grid] (concat) {Temporal channel concat\\\(\tilde{F}\in\R^{B\times3328\times24\times24}\)};
 \node[right=of concat] (lin) {BN + \(1\times1\) linear head};
@@ -119,7 +119,7 @@ The video ST-LP project lives under \codepath{experiments_related/vjepa21video_s
 \end{center}
 
 \subsection{Inputs, Outputs, and Ablation Meaning}
-For a 4-frame clip and V-JEPA tubelet size 2, \(T'=4/2=2\).  The encoder output is
+For a 4-frame clip and V-JEPA 2.1 tubelet size 2, \(T'=4/2=2\).  The encoder output is
 \[
 G=E_{\theta}^{\mathrm{video}}(X)\in\R^{B\times C\times T'\times H'\times W'}
 =\R^{B\times1664\times2\times24\times24}.
@@ -131,12 +131,12 @@ G=E_{\theta}^{\mathrm{video}}(X)\in\R^{B\times C\times T'\times H'\times W'}
 \]
 The linear head weight tensor is \(W\in\R^{256\times3328\times1\times1}\), and temporal importance can be recovered by reshaping \(W\rightarrow\R^{256\times T'\times C}\) and summing absolute mass per tubelet.  The three intended video ablations are: \codepath{repeated_stlp}, where the same target frame is repeated; \codepath{real_stlp}, where the target-centered temporal context is real; and \codepath{shuffled_stlp}, where real context frames are deterministically shuffled.  Missing target depth and first/last frames are excluded from training and evaluation.
 
-\section{Image-Mode V-JEPA2.1 DPT-FiLM Depth Decoder}
+\section{Image-Mode V-JEPA 2.1 DPT-FiLM Depth Decoder}
 \subsection{High-Level Overview}
-The DPT-FiLM pipeline replaces the linear head with a multi-layer DPT decoder and metadata conditioning.  The folder \codepath{vjepa21_vitG_dpt_film_occufly_sweep} uses selected V-JEPA transformer layers \(\{11,23,37,47\}\), each reshaped to a \(24\times24\) patch map, then passed through DINOv3 DPT reassembly/projection, FiLM metadata modulation, DPT fusion/refinement, and depth-bin conversion.
+The DPT-FiLM pipeline replaces the linear head with a multi-layer DPT decoder and metadata conditioning.  The folder \codepath{vjepa21_vitG_dpt_film_occufly_sweep} uses selected V-JEPA 2.1 transformer layers \(\{11,23,37,47\}\), each reshaped to a \(24\times24\) patch map, then passed through DINOv3 DPT reassembly/projection, FiLM metadata modulation, DPT fusion/refinement, and depth-bin conversion.
 
 \paragraph{Implementation paths.}
-The image-mode DPT-FiLM trainer is \codepath{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}.  Its run notes and command templates are in \codepath{experiments_related/scripts/dpt_decoder/README.md}.  The implementation reuses the DINOv3 depth-head adapter and V-JEPA checkpoint loading utilities from \codepath{experiments_related/scripts/vjepa21_dinov3_depth_adapter.py}.
+The image-mode DPT-FiLM trainer is \codepath{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}.  Its run notes and command templates are in \codepath{experiments_related/scripts/dpt_decoder/README.md}.  The implementation reuses the DINOv3 depth-head adapter and V-JEPA 2.1 checkpoint loading utilities from \codepath{experiments_related/scripts/vjepa21_dinov3_depth_adapter.py}.
 
 \textbf{FiLM} is \textbf{Feature-wise Linear Modulation}.  The metadata vector is
 \[
@@ -153,7 +153,7 @@ where \(\gamma_l,\beta_l\in\R^{C_d}\) are predicted by a linear layer initialize
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[node distance=6mm, every node/.style={draw, rounded corners, align=center, font=\small, minimum height=7mm}, >=Latex]
 \node (rgb) {RGB \(I\)};
-\node[right=of rgb] (vj) {Frozen V-JEPA\\layers 11/23/37/47};
+\node[right=of rgb] (vj) {Frozen V-JEPA 2.1\\layers 11/23/37/47};
 \node[right=of vj] (maps) {4 patch maps\\\(4\times[B,1664,24,24]\)};
 \node[right=of maps] (dpt) {DPT reassemble\\+ projection};
 \node[right=of dpt] (film) {FiLM with\\altitude+intrinsics};
@@ -170,19 +170,19 @@ where \(\gamma_l,\beta_l\in\R^{C_d}\) are predicted by a linear layer initialize
 \end{center}
 
 \subsection{Final-Layer SFP DPT-FiLM Variant}
-The folder \codepath{vjepa21_vitG_final_sfp_dpt_film_occufly_sweep} uses the same depth target and FiLM conditioning but changes the feature source.  Instead of requesting four intermediate transformer layers, it takes the final V-JEPA token sequence only, reshapes it to \(F^{47}\in\R^{B\times1664\times24\times24}\), and expands it with a local \textbf{SFP} (\textbf{Simple Feature Pyramid}) adapted from ViTDet/Detectron2:
+The folder \codepath{vjepa21_vitG_final_sfp_dpt_film_occufly_sweep} uses the same depth target and FiLM conditioning but changes the feature source.  Instead of requesting four intermediate transformer layers, it takes the final V-JEPA 2.1 token sequence only, reshapes it to \(F^{47}\in\R^{B\times1664\times24\times24}\), and expands it with a local \textbf{SFP} (\textbf{Simple Feature Pyramid}) adapted from ViTDet/Detectron2:
 \[
 \mathrm{SFP}(F^{47})=\{F_4,F_2,F_1,F_{1/2}\},\quad
 F_s\in\R^{B\times256\times(24s)\times(24s)},\quad s\in\{4,2,1,1/2\}.
 \]
-Thus the four DPT levels are approximately \(96\times96\), \(48\times48\), \(24\times24\), and \(12\times12\), each with 256 channels.  The DPT post-process channels in this variant are \([256,256,256,256]\), and the run uses frozen V-JEPA, distributed training, 5 GPUs for the inspected point, and the same metric-depth conversion.
+Thus the four DPT levels are approximately \(96\times96\), \(48\times48\), \(24\times24\), and \(12\times12\), each with 256 channels.  The DPT post-process channels in this variant are \([256,256,256,256]\), and the run uses frozen V-JEPA 2.1, distributed training, 5 GPUs for the inspected point, and the same metric-depth conversion.
 
 \paragraph{Implementation paths.}
 The final-layer SFP variant is implemented in \codepath{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_final_sfp_dpt_film_occufly.py}.  The same README, \codepath{experiments_related/scripts/dpt_decoder/README.md}, records the intended command line and explicitly distinguishes this final-token SFP path from the four-intermediate-layer DPT-FiLM path.
 
 \section{Video DPT-FiLM with Dense Temporal Attention (\dta)}
 \subsection{High-Level Overview}
-The folder \codepath{vjepa21video_features_depth/dptfilm_attention} implements video-mode DPT-FiLM.  Its \codepath{real_dta__clip4/lr_1e_-3__wd_1e_-3} run uses four-frame clips, selected layers \(\{11,23,37,47\}\), frozen V-JEPA2.1-Gigantic, 30 epochs, \(\mathrm{lr}=10^{-3}\), \(\mathrm{wd}=10^{-3}\), metadata dimension 128, and 8 temporal attention heads.  \textbf{\dta} means \textbf{Dense Temporal Attention}: at each spatial cell and selected layer, a learned query attends over the tubelet features.
+The folder \codepath{vjepa21video_features_depth/dptfilm_attention} implements video-mode DPT-FiLM.  Its \codepath{real_dta__clip4/lr_1e_-3__wd_1e_-3} run uses four-frame clips, selected layers \(\{11,23,37,47\}\), frozen V-JEPA 2.1-Gigantic, 30 epochs, \(\mathrm{lr}=10^{-3}\), \(\mathrm{wd}=10^{-3}\), metadata dimension 128, and 8 temporal attention heads.  \textbf{\dta} means \textbf{Dense Temporal Attention}: at each spatial cell and selected layer, a learned query attends over the tubelet features.
 
 \paragraph{Implementation paths.}
 The video DPT-FiLM+DTA project lives at \codepath{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention}.  The main trainer is \codepath{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/scripts/train_video_dptfilm_attention.py}; the sequential runner is \codepath{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/scripts/run_all_dptfilm_attention_experiments.py}; and the relevant model modules are \codepath{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/model.py}, \codepath{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/temporal_attention.py}, \codepath{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/dpt_film.py}, and \codepath{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/vjepa21_video_adapter.py}.
@@ -191,7 +191,7 @@ The video DPT-FiLM+DTA project lives at \codepath{experiments_related/vjepa21vid
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[node distance=6mm, every node/.style={draw, rounded corners, align=center, font=\small, minimum height=7mm}, >=Latex]
 \node (clip) {Clip\\\([B,3,4,384,384]\)};
-\node[right=of clip] (vj) {Video V-JEPA\\layers 11/23/37/47};
+\node[right=of clip] (vj) {Video V-JEPA 2.1\\layers 11/23/37/47};
 \node[right=of vj] (grids) {4 video grids\\\([B,1664,2,24,24]\)};
 \node[right=of grids] (dta) {Dense temporal\\attention adapters};
 \node[right=of dta] (maps) {4 maps\\\([B,1664,24,24]\)};
@@ -233,25 +233,25 @@ This split is controlled by the split-protocol support in \codepath{experiments_
 
 \section{CGFormer-Based Semantic Scene Completion Comparison}
 \subsection{High-Level Overview}
-The folder \codepath{ssc/cgformer_results_comparision} is an aggregate comparison of six CGFormer/OccuFly SSC runs: \codepath{dav2prior}, \codepath{m2_vjepa_distill_projector_current}, \codepath{m3_latent_view}, \codepath{m4_masked3d_projector_current}, and two V-JEPA2.1 ViT-G DPT-FiLM depth-prior runs.  It is a reporting layer, not a new model: \codepath{runs_wide.csv}, \codepath{metrics_long.csv}, \codepath{leaderboard_long.csv}, \codepath{altitude_metrics_long.csv}, and \codepath{class_metrics_long.csv} are generated from each run's \codepath{results_ssc.csv} and \codepath{metrics_test.json}.
+The folder \codepath{ssc/cgformer_results_comparision} is an aggregate comparison of six CGFormer/OccuFly SSC runs: \codepath{dav2prior}, \codepath{m2_vjepa_distill_projector_current}, \codepath{m3_latent_view}, \codepath{m4_masked3d_projector_current}, and two V-JEPA 2.1 ViT-G DPT-FiLM depth-prior runs.  It is a reporting layer, not a new model: \codepath{runs_wide.csv}, \codepath{metrics_long.csv}, \codepath{leaderboard_long.csv}, \codepath{altitude_metrics_long.csv}, and \codepath{class_metrics_long.csv} are generated from each run's \codepath{results_ssc.csv} and \codepath{metrics_test.json}.
 
 \paragraph{Implementation paths.}
-The comparison dashboard and table generator in the result folder are \codepath{experiments_related/outputs/results/ssc/cgformer_results_comparision/view_results.py} and \codepath{experiments_related/outputs/results/ssc/cgformer_results_comparision/README.md}.  The CGFormer OccuFly preparation/evaluation utilities are under \codepath{experiments_related/scripts_ssc/cgformer/common}, with V-JEPA/DPT-FiLM prior export and launch scripts under \codepath{experiments_related/scripts_ssc/cgformer/vitGFilmaltitudeconditioning}.  The local baseline model repository is \codepath{CGFormer}.
+The comparison dashboard and table generator in the result folder are \codepath{experiments_related/outputs/results/ssc/cgformer_results_comparision/view_results.py} and \codepath{experiments_related/outputs/results/ssc/cgformer_results_comparision/README.md}.  The CGFormer OccuFly preparation/evaluation utilities are under \codepath{experiments_related/scripts_ssc/cgformer/common}, with V-JEPA 2.1/DPT-FiLM prior export and launch scripts under \codepath{experiments_related/scripts_ssc/cgformer/vitGFilmaltitudeconditioning}.  The local baseline model repository is \codepath{CGFormer}.
 
-CGFormer is used as a semantic scene completion baseline family with image-to-BEV/voxel modules from the local \texttt{CGFormer} codebase.  The comparison emphasizes occupied-class mIoU, occupied IoU, class-wise IoU, altitude-stratified metrics, and deltas against the DAV2-prior baseline.  DAV2 means Depth Anything V2; V-JEPA means Video Joint Embedding Predictive Architecture; BEV means Bird's-Eye View; SSC means Semantic Scene Completion.
+CGFormer is used as a semantic scene completion baseline family with image-to-BEV/voxel modules from the local \texttt{CGFormer} codebase.  The comparison emphasizes occupied-class mIoU, occupied IoU, class-wise IoU, altitude-stratified metrics, and deltas against the DAV2-prior baseline.  DAV2 means Depth Anything V2; V-JEPA 2.1 means Video Joint Embedding Predictive Architecture; BEV means Bird's-Eye View; SSC means Semantic Scene Completion.
 
-\section{V-JEPA/F2D + FoundationSSC Hybrid SSC}
+\section{V-JEPA 2.1/F2D + FoundationSSC Hybrid SSC}
 \subsection{Architecture Overview}
-The requested \codepath{vjepaF2Dfoundationssc_foundationssc_hybrid_original} and corrected \codepath{vjepafoundationssc_...} folders implement a hybrid semantic scene completion system.  The front end is V-JEPA2.1 plus DPT-FiLM depth/probability estimation; the 3D back end is real FoundationSSC/MMCV/MMDetection/DFA3D with OccuFly geometry patched into its config before module construction.
+The requested \codepath{vjepaF2Dfoundationssc_foundationssc_hybrid_original} and corrected \codepath{vjepafoundationssc_...} folders implement a hybrid semantic scene completion system.  The front end is V-JEPA 2.1 plus DPT-FiLM depth/probability estimation; the 3D back end is real FoundationSSC/MMCV/MMDetection/DFA3D with OccuFly geometry patched into its config before module construction.
 
 \paragraph{Implementation paths.}
-The active corrected FoundationSSC hybrid source is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original}.  The main trainer is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/train_vjepa_occufly_ssc.py}; the depth front end is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/dpt_film_depth_probability_head.py}; the V-JEPA backbone wrapper is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/backbone_factory.py}; the lifting code is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/frustum_voxel_pool.py}; losses and metrics are \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/losses_ssc.py} and \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/metrics_ssc.py}; and the real FoundationSSC adapters are in \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/foundation_ssc/real_adapters.py}.  The older F2D package variant is under \codepath{experiments_related/scripts_ssc/vjepaF2Dfoundationssc_foundationssc_hybrid_original}.
+The active corrected FoundationSSC hybrid source is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original}.  The main trainer is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/train_vjepa_occufly_ssc.py}; the depth front end is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/dpt_film_depth_probability_head.py}; the V-JEPA 2.1 backbone wrapper is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/backbone_factory.py}; the lifting code is \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/frustum_voxel_pool.py}; losses and metrics are \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/losses_ssc.py} and \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/metrics_ssc.py}; and the real FoundationSSC adapters are in \codepath{experiments_related/scripts_ssc/vjepafoundationssc_foundationssc_hybrid_original/vjepafoundationssc/foundation_ssc/real_adapters.py}.  The older F2D package variant is under \codepath{experiments_related/scripts_ssc/vjepaF2Dfoundationssc_foundationssc_hybrid_original}.
 
 \begin{center}
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[node distance=5mm, every node/.style={draw, rounded corners, align=center, font=\small, minimum height=7mm}, >=Latex]
 \node (rgb) {RGB image\\+ metadata};
-\node[right=of rgb] (vj) {Frozen V-JEPA\\multi-layer features};
+\node[right=of rgb] (vj) {Frozen V-JEPA 2.1\\multi-layer features};
 \node[right=of vj] (dpt) {DPT-FiLM F2D\\depth + depth prob};
 \node[right=of dpt] (ctx) {Context adapter\\2D semantic context};
 \node[right=of ctx] (lss) {LSS / voxel proposal\\FoundationSSC geometry};
@@ -267,7 +267,7 @@ The active corrected FoundationSSC hybrid source is \codepath{experiments_relate
 }
 \end{center}
 
-\textbf{F2D} is used here as \textbf{features-to-depth}: DPT-FiLM predicts both dense metric depth \(\hat{D}\) and a depth-bin probability tensor \(P_D\).  \textbf{LSS} is \textbf{Lift-Splat-Shoot}; this is the camera-to-voxel lifting stage.  The user note asking whether \codepath{vjepaf21oundationssc_mde_warmstart_G} was a ``Look Spat Shoot'' baseline appears to refer to \textbf{Lift-Splat-Shoot}, not ``Look Spat Shoot''.  Based on the local code and logs, \codepath{vjepaf21oundationssc_mde_warmstart_G} is better described as a V-JEPA/FoundationSSC model warm-started from a monocular depth estimation (MDE) checkpoint, using LSS-style depth-probability lifting inside the SSC model.
+\textbf{F2D} is used here as \textbf{features-to-depth}: DPT-FiLM predicts both dense metric depth \(\hat{D}\) and a depth-bin probability tensor \(P_D\).  \textbf{LSS} is \textbf{Lift-Splat-Shoot}; this is the camera-to-voxel lifting stage.  The user note asking whether \codepath{vjepaf21oundationssc_mde_warmstart_G} was a ``Look Spat Shoot'' baseline appears to refer to \textbf{Lift-Splat-Shoot}, not ``Look Spat Shoot''.  Based on the local code and logs, \codepath{vjepaf21oundationssc_mde_warmstart_G} is better described as a V-JEPA 2.1/FoundationSSC model warm-started from a monocular depth estimation (MDE) checkpoint, using LSS-style depth-probability lifting inside the SSC model.
 
 \subsection{OccuFly SSC Tensor Geometry}
 OccuFly semantic labels are stored in WHD layout and converted internally to DHW:
@@ -363,13 +363,13 @@ SFP & Simple Feature Pyramid \\
 SIGLOSS & Scale-invariant logarithmic depth loss \\
 SSC & Semantic Scene Completion \\
 ST-LP & Spatio-Temporal Linear Probe \\
-V-JEPA & Video Joint Embedding Predictive Architecture \\
+V-JEPA 2.1 & Video Joint Embedding Predictive Architecture \\
 ViT-G & Vision Transformer Gigantic variant \\
 VoxFormer & Voxel transformer module used in FoundationSSC-style 3D reasoning \\
 \bottomrule
 \end{tabularx}
 
 \section{Reporting Recommendations}
-For a research paper, these experiments should be grouped into three methodological families: (1) frozen V-JEPA representation probing for metric depth, covering image LP and video \stlp; (2) structured depth decoding with DPT-FiLM and temporal attention, covering image DPT-FiLM, final-layer SFP DPT-FiLM, altitude-interpolation DPT-FiLM, and video \dta; and (3) semantic scene completion, covering CGFormer baselines, V-JEPA/F2D/FoundationSSC hybrids, MDE warm-starting, geometry correction, and semantic reweighting.  The cleanest notation is to present depth as \(I\) or \(X\rightarrow\hat{D}\), and SSC as \((I,m,K)\rightarrow\hat{Y}_{\mathrm{DHW}}\), where \(m\) is altitude/intrinsics metadata and \(K\) denotes camera calibration.
+For a research paper, these experiments should be grouped into three methodological families: (1) frozen V-JEPA 2.1 representation probing for metric depth, covering image LP and video \stlp; (2) structured depth decoding with DPT-FiLM and temporal attention, covering image DPT-FiLM, final-layer SFP DPT-FiLM, altitude-interpolation DPT-FiLM, and video \dta; and (3) semantic scene completion, covering CGFormer baselines, V-JEPA 2.1/F2D/FoundationSSC hybrids, MDE warm-starting, geometry correction, and semantic reweighting.  The cleanest notation is to present depth as \(I\) or \(X\rightarrow\hat{D}\), and SSC as \((I,m,K)\rightarrow\hat{Y}_{\mathrm{DHW}}\), where \(m\) is altitude/intrinsics metadata and \(K\) denotes camera calibration.
 
 \end{document}
