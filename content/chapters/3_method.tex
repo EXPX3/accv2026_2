@@ -13,8 +13,15 @@ This section describes our evaluation framework for transferring frozen V-JEPA 2
 
 We evaluate if and how far previously selected learned MDE heads, a learnable pose aware Multi View Stereo Depth Estimation head and a learnable image context feature represenattion head with their backbone as frozen V-JEPA 2.1, benifit in improving aerial SSC. Knowing that existing metric MDE models are not generalisable we leverage the fact that UAV pose/altitude and onboard camera intrinsics are usually known or estimated using auxilary systems and evaluate benifits of Feature wise learning based modulation (FiLM) for aerial MDE and indirectly SSC. 
 
-We mathematically formulate the train/eval/test data source, problem statement for MDE and SSC. Followed by description of the adapter/neck needed to make V-JEPA 2.1 features usable by the downstream heads. Then progressively dive deeper into considered MDE heads and SSC variants related sourcing, compatability details followed by answering a questionair that answers what componet or componet combination has helped to benifit aerial SSC?? Which has also motivated the direction of flow of experiments.
-Fig \cref{fig:Evaluation_Overview} outlines the high-level overview of the evaluation frame work, metrics and experiments conducted. Later the same structure will be used to report results obtained. 
+We mathematically formulate the train/eval/test data source, problem statement for MDE and SSC. Followed by description of the adapter/neck needed to make V-JEPA 2.1 features usable by the downstream heads. Then progressively dive deeper into considered MDE heads and SSC variants related sourcing, compatability details followed by answering a questionair that answers what componet or componet combination has helped to benifit aerial SSC?? This direction of flow is summarized in \cref{fig:evaluation_overview}.
+The following sections outline the evaluation framework, metrics, and experiments conducted. Later the same structure will be used to report results obtained.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{content/images/overview/ev.drawio.png}
+\caption{Evaluation overview for the dense feature-transfer study.  The figure summarizes the progression from frozen V-JEPA 2.1 RGB/video representations to monocular and multiview depth estimation heads, followed by the SSC variants that use the selected context and geometry pathways.}
+\label{fig:evaluation_overview}
+\end{figure*}
 
 
 % We start by finding the best MDE architecture among the listed MDE variants in \cref{fig:Evaluation_Overview}, marked in color green and use it as either geometric prior or as depth estimation component of geometric layer in the chosen SSC variants, While the image context layer   : generation of depth priors in case of CGFormer inspired variant; Depth estimation for FoundationSSC inspired variant,  that    depth prediction  This design separates four factors that are often confounded in end-to-end training: (i) the amount of aerial geometry already encoded in the frozen foundation representation, (ii) the decoder structure required to recover dense metric predictions from transformer tokens, (iii) the usefulness of predicted depth as a geometric prior for volumetric semantic occupancy, and (iv) whether explicit multiview correspondence improves the 3D prior beyond monocular depth estimation, and (v) whether altitude/intrinsics FiLM conditioning should also modulate the multiview geometry prior.  We use OccuFly~\cite{gross2026occufly} throughout because it provides RGB images, metric depth maps, camera calibration, semantic occupancy grids, and, for the pose-aware MVS branch, per-frame camera poses from real UAV viewpoints.
@@ -310,13 +317,13 @@ S_\cdot&\in\{[256,96,96],[256,48,48],\\
 &\hspace{1.1em}[256,24,24],[256,12,12]\}.
 \end{aligned}$ \\
 \addlinespace
-Multilayer DPT &
+ DPT &
 $I_t\rightarrow\{F_t^{(11)},F_t^{(23)},F_t^{(37)},F_t^{(47)}\}\rightarrow\trainable{\mathrm{DPT\ reassembly/fusion}}\rightarrow(\hat{D}_t,P_t^D)$. \\
 \addlinespace
-FiLM multilayer DPT &
+FiLM DPT &
 $I_t,K_t,h_t\rightarrow\{R_l\},e_t\rightarrow\trainable{\mathrm{FiLM}}(\{R_l\},e_t)\rightarrow\trainable{\mathrm{DPT\ fusion}}\rightarrow(\hat{D}_t,P_t^D)$. \\
 \addlinespace
-Video FiLM multilayer DPT &
+Video FiLM  DPT &
 $X_t,K_t,h_t\rightarrow\{G_t^{(l)}[1664,T',24,24]\}\rightarrow\trainable{\mathrm{DTA}}\rightarrow\{\bar{F}_t^{(l)}[1664,24,24]\},e_t\rightarrow\trainable{\mathrm{FiLM\ DPT}}\rightarrow(\hat{D}_t,P_t^D)$. \\
 \addlinespace
 Pose-MVS-FiLM &
@@ -337,14 +344,14 @@ The same diagnostic is applied in RGB and video mode, as summarized in Table~\re
 
 DPT-style decoders are the structured alternatives to the linear probes.  They follow the Dense Prediction Transformer principle of reassembling transformer features into image-like maps and fusing them with convolutional refinement for dense prediction~\cite{ranftl2021dpt}.  Table~\ref{tab:depth_block_flows} gives the variant-level data flow, representative shapes, and learnable blocks; the equations below define only the shared DPT intermediates used by the SFP and FiLM variants.
 
-For the multilayer DPT path, selected V-JEPA 2.1 layers $\mathcal{L}_{\mathrm{G}}=\{11,23,37,47\}$ are reassembled and projected to a common decoder width $C_D=256$:
+For the  DPT path, selected V-JEPA 2.1 layers $\mathcal{L}_{\mathrm{G}}=\{11,23,37,47\}$ are reassembled and projected to a common decoder width $C_D=256$:
 \begin{equation}
     R_l = \rho_l\left(F_t^{(l)}\right),
     \qquad R_l\in\mathbb{R}^{C_D\times H_l\times W_l},
     \quad l\in\mathcal{L}_{\mathrm{G}},
     \label{eq:dpt_reassembly}
 \end{equation}
-where $\rho_l$ denotes the DPT reassembly and projection block.  These maps are either fused directly by the multilayer DPT decoder or passed through FiLM conditioning before fusion.
+where $\rho_l$ denotes the DPT reassembly and projection block.  These maps are either fused directly by the  DPT decoder or passed through FiLM conditioning before fusion.
 
 \paragraph{SFP-DPT.}
 The Simple Feature Pyramid (SFP) variant tests the final-layer-feature hypothesis for V-JEPA 2.1 transfer.  V-JEPA 2.1 reports strong dense features with deep supervision~\cite{murlabadia2026vjepa21}, so a plausible question is whether the final ViT-G map already carries enough earlier-layer information for depth once it is converted into a multiscale pyramid.  To test this, the SFP-DPT branch uses only the final feature map $F_t^{(47)}$ and constructs the multiscale maps listed in Table~\ref{tab:depth_block_flows}.  The pyramid design is inspired by the Simple Feature Pyramid used with plain ViT backbones in ViTDet~\cite{li2022vitdet}; we cite it as architectural inspiration rather than as an external implementation dependency.
@@ -384,7 +391,7 @@ For video FiLM-DPT, the DPT inputs are first converted from tubelet-aware video 
     -\mu_{t}^{(l)}(:,u,v)\right),
     \label{eq:dta}
 \end{equation}
-where $\mu_{t}^{(l)}=\operatorname{mean}_{\tau}G_t^{(l)}(:,\tau,:,:)$ and $\alpha=\sigma(a)$ is initialized to approximately $0.1$.  The resulting maps $\{\bar{F}_{t}^{(l)}\}_{l\in\mathcal{L}_{\mathrm{G}}}$ are passed to the same FiLM-conditioned DPT decoder as the RGB multilayer variant.
+where $\mu_{t}^{(l)}=\operatorname{mean}_{\tau}G_t^{(l)}(:,\tau,:,:)$ and $\alpha=\sigma(a)$ is initialized to approximately $0.1$.  The resulting maps $\{\bar{F}_{t}^{(l)}\}_{l\in\mathcal{L}_{\mathrm{G}}}$ are passed to the same FiLM-conditioned DPT decoder as the RGB  variant.
 
 \subsubsection{Pose-MVS-FiLM}
 \label{sec:method_depth_pose_mvs_film}
@@ -429,7 +436,7 @@ Table~\ref{tab:method_depth_variants} summarizes the depth variants and the ques
 \midrule
 Linear probe & Tests whether metric aerial depth is linearly accessible from frozen V-JEPA 2.1 representations. \\
 SFP-DPT & Tests whether the final V-JEPA 2.1 map can be converted into an effective dense pyramid without using intermediate layers. \\
-Multilayer DPT & Tests whether selected intermediate layers improve dense metric depth over final-layer probing. \\
+ DPT & Tests whether selected intermediate layers improve dense metric depth over final-layer probing. \\
 FiLM-DPT & Tests whether altitude/intrinsics conditioning improves RGB or video depth decoding. \\
 Pose-MVS-FiLM & Tests whether calibrated multiview matching and metadata conditioning improve the geometric prior. \\
 \bottomrule
@@ -473,33 +480,23 @@ Depth models are evaluated only over valid pixels.  The manuscript uses root mea
 \end{equation}
 For video-depth runs, the evaluation script also supports MAE, squared-relative error, and threshold accuracies $\delta_1,\delta_2,\delta_3$ when enabled.
 
+\newpage
 \subsection{Semantic Scene Completion}
 \label{sec:method_ssc}
 \label{sec:method_depth_probabilities}
 
-Semantic scene completion (SSC) is evaluated after depth estimation because the depth branches provide geometry priors for downstream 3D semantic occupancy.  The SSC experiments test whether those priors, together with the corresponding image-context or F2D features, transfer into a 3D completion task.  The purpose is not to introduce a completely new SSC architecture.  Instead, we use published SSC designs whose image-context and geometry pathways are exposed enough to support controlled feature-transfer studies.
-
-\begin{figure*}[t]
+\begin{wrapfigure}[24]{r}{0.52\linewidth}
+\vspace{-1.0em}
 \centering
-\fbox{\begin{tabular}{c}
-\textbf{Input images / video / pose-aware MVS image sets} \\
-$\downarrow$ \\
-\textbf{Frozen visual representation or backbone} \\
-$\swarrow \qquad \searrow$ \\
-\begin{tabular}{c@{\qquad}c}
-\textbf{Image-context branch} & \textbf{Geometry branch} \\
-F2D / context features & depth priors, depth distributions, or MVS geometry
-\end{tabular} \\
-$\searrow \qquad \swarrow$ \\
-\textbf{2D-to-3D lifting / view transformation} \\
-$\downarrow$ \\
-\textbf{3D feature fusion / encoder} \\
-$\downarrow$ \\
-\textbf{Semantic occupancy prediction}
-\end{tabular}}
-\caption{Conceptual SSC evaluation flow.  The figure abstracts the common evaluation structure used for CGFormer and FoundationSSC variants: an image-context pathway and a geometry-depth pathway are modified independently while the downstream SSC pipeline is kept as close as possible to the original published architecture.}
+\includegraphics[width=\linewidth,trim=6 11 0 0,clip]{content/images/overview/ssc_p.drawio.png}
+\caption{Conceptual SSC flow with independently varied image-context and geometry-depth pathways.}
 \label{fig:ssc_decoupled_context_geometry_flow}
-\end{figure*}
+\vspace{-1.0em}
+\end{wrapfigure}
+
+The SSC benchmark isolates two factors that are otherwise coupled in end-to-end completion systems.  The image-context pathway contributes semantic visual features, while the geometry pathway contributes monocular depth, depth distributions, or pose-aware MVS priors.  Both pathways are then lifted into a common 3D representation before fusion and semantic occupancy prediction.
+
+Semantic scene completion (SSC) is evaluated after depth estimation because the depth branches provide geometry priors for downstream 3D semantic occupancy.  The SSC experiments test whether those priors, together with the corresponding image-context or F2D features, transfer into a 3D completion task.  The purpose is not to introduce a completely new SSC architecture.  Instead, we use published SSC designs whose image-context and geometry pathways are exposed enough to support controlled feature-transfer studies.
 
 CGFormer and FoundationSSC are selected consciously even though their published forms use stereo-derived geometry priors rather than the monocular MDE or pose-aware MVS depth estimators targeted in this chapter.  The reason is methodological: both expose a useful separation between image-context information and geometry information.  CGFormer combines an image encoder, depth-context components including depth-aware view transformation, CGVT, a 3D local-global encoder, and a decoding head~\cite{yu2024cgformer}.  FoundationSSC is a dual-decoupling framework with a foundation encoder, decoupled semantic-context and geometric pathways, hybrid view transformation, axis-aware fusion, and a decoding head~\cite{chen2025foundationssc}.  We adapt these published designs for controlled evaluation.
 
