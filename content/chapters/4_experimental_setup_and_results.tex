@@ -1,8 +1,3 @@
-% ============================================================================
-% Experimental Setup section updated with Pose-MVS and Pose-MVS-FiLM FoundationSSC variants.
-% Requires: amsmath, amssymb. Optional: booktabs if the table is kept.
-% ============================================================================
-
 \definecolor{bestmiou}{RGB}{255,229,236}
 \definecolor{bestiou}{RGB}{246,238,214}
 \newcommand{\fsscrgbdirect}{FSSC RGB ctx DPT, depth FiLM-DPT}
@@ -13,22 +8,17 @@
 \section{Experimental Setup and Results}
 
 \subsection{Dataset and Tasks}
-We evaluate on OccuFly~\cite{gross2026occufly} for monocular metric depth estimation and semantic scene completion (SSC). 
-For the standard protocol, we use scenes 01--05 for training, scenes 06--07 for validation, and scenes 08--09 for testing, across altitudes of 30, 40, and 50 m. 
-The standard depth split contains 14,804 training frames, 1,965 validation frames, and 3,842 test frames. 
-RGB inputs are resized to $384 \times 384$. 
-Depth values are represented in meters, clipped to $[0.001,80]$, and evaluated only over finite positive pixels that remain valid after mask-aware resizing.
+We evaluate monocular depth estimation (MDE) and semantic scene completion (SSC) on OccuFly~\cite{gross2026occufly}. The standard split uses scenes 01--05 for training, scenes 06--07 for validation, and scenes 08--09 for testing across altitudes of 30, 40, and 50~m. The depth split contains 14,804 training frames, 1,965 validation frames, and 3,842 test frames. RGB inputs are resized to $384\times384$; metric depth is clipped to $[0.001,80]$~m and evaluated only over finite positive pixels that remain valid after mask-aware resizing. Video variants use consecutive frame-index neighborhoods because the released preprocess files provide frame indices and poses but no measured capture FPS.
 
-For SSC, OccuFly labels are defined on a voxel grid of shape $192 \times 128 \times 128$ in WHD order. 
-The grid spans $x\in[-48,48]$ m, $y\in[-32,32]$ m, and $z\in[0,64]$ m, corresponding to a voxel size of 0.5 m. 
+For SSC, OccuFly labels are defined on a $192\times128\times128$ voxel grid in WHD order. The grid spans $x\in[-48,48]$~m, $y\in[-32,32]$~m, and $z\in[0,64]$~m, with 0.5~m voxels. Unless stated otherwise, experiments are run on an NVIDIA DGX node with 8 NVIDIA H100 80GB GPUs.
 
-\subsection{MDE benchmarking results}
+\subsection{MDE Benchmarking Results}
 
-All experiments are run on an NVIDIA DGX node with 8 NVIDIA H100 80GB GPUs. 
+Table~\ref{tab:mde_comparison} compares depth models on the standard OccuFly test split. Linear probing shows that frozen V-JEPA~2.1 features contain usable depth information, but dense decoding and metadata conditioning are much stronger. FiLM-DPT-RGB gives the best overall V-JEPA~2.1 result, with 4.621~m RMSE and 0.129 AbsRel, slightly improving RMSE over DepthAnything2-OccuFly while using the frozen V-JEPA~2.1 backbone.
 
 \begin{table}[t]
 \centering
-\caption{OccuFly test monocular depth estimation comparison.  Published baseline values for MapAnythingV1.1, Metric3Dv2, Depth Anything 2, and Depth Anything 3 follow Table 5 of OccuFly~\cite{gross2026occufly}.  Light pink marks the best RMSE.}
+\caption{OccuFly test monocular depth estimation comparison. Published baseline values for MapAnythingV1.1, Metric3Dv2, Depth Anything 2, and Depth Anything 3 follow Table 5 of OccuFly~\cite{gross2026occufly}. Light pink marks the best RMSE.}
 \label{tab:mde_comparison}
 \begin{tabular}{lrrrrrrr}
 \toprule
@@ -41,21 +31,16 @@ DPT & 0.469 & 0.795 & 0.898 & 0.267 & 11.471 & 9.227 & 0.411 \\
 FiLM\_DPT\_RGB & 0.833 & 0.971 & 0.998 & 0.129 & \cellcolor{bestmiou}4.621 & 3.523 & 0.164 \\
 DTA\_FiLM\_DPT\_Video & 0.805 & 0.970 & 0.998 & 0.136 & 4.878 & 3.635 & 0.167 \\
 \midrule
-DepthAnything2\_OccuFly~\cite{gross2026occufly} & 0.834 & 0.976 &  0.999 & 0.134 & 4.844 & 4.193 & 0.112 \\
-Metric3Dv2\_OccuFly~\cite{gross2026occufly} & 0.278 & 0.806 & 0.985 & 0.381 & 13.643 & 13.134 & 0.098 \\
-MapAnythingV1.1~\cite{keetha2026mapanything} & 0.000 & 0.000 & 0.003 & 0.799 & 30.068 & 29.309 & 0.069 \\
-Metric3Dv2~\cite{hu2024metric3dv2} & 0.073 & 0.208 & 0.455 & 0.471 & 19.578 & 18.409 & 0.156 \\
-DepthAnything2~\cite{yang2024depthanythingv2} & 0.002 & 0.015 & 0.059 & 0.729 & 28.382 & 27.392 & 0.192 \\
-DepthAnything3~\cite{lin2025depthanything3} & 0.000 & 0.005 & 0.141 & 0.591 & 22.615 & 22.019 & 0.043 \\
-
+DepthAnything2\_OccuFly~\cite{gross2026occufly} & 0.834 & 0.976 & 0.999 & 0.134 & 4.844 & 4.193 & 0.112 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+Table~\ref{tab:occufly-depth-30-50} reports the altitude-interpolation split. The FiLM-DPT-RGB head remains accurate when trained at 30/50~m and tested at 40~m, supporting the use of altitude and intrinsics as scale-conditioning signals.
 
-\begin{table*}[t]
+\begin{table}[!htbp]
 \centering
-\caption{Best depth result for the altitude-interpolation split: training uses all scenes 01--09 at 30 m and 50 m altitude, validation uses scenes 01--04 at 40 m altitude, and testing uses scenes 05--08 at 40 m altitude.}
+\caption{Best depth result for the altitude-interpolation split: training uses all scenes 01--09 at 30~m and 50~m altitude, validation uses scenes 01--04 at 40~m altitude, and testing uses scenes 05--08 at 40~m altitude.}
 \label{tab:occufly-depth-30-50}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrrrrr}
@@ -64,159 +49,41 @@ Backbone \& Depth head & $\delta_1 \uparrow$ & $\delta_2 \uparrow$ & $\delta_3 \
 \midrule
 V-JEPA 2.1 RGB FiLM\_DPT\_RGB & \textbf{0.9653} & \textbf{0.9997} & \textbf{0.9999} & \textbf{0.1021} & \textbf{4.7071} & \textbf{3.9570} & \textbf{0.119599} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
 }
-\end{table*}
+\end{table}
 
-\begin{table*}[t]
+Appendix Table~\ref{tab:mde_comparison_by_altitude} shows that the video FiLM-DPT branch is strongest at 30~m, while the RGB FiLM-DPT branch is stronger at 40~m and 50~m. The corresponding scene-wise breakdown is provided in Appendix Table~\ref{tab:mde_comparison_by_scene}: video helps on scene\_08, but RGB FiLM-DPT is stronger on scene\_09.
+
+\subsection{SSC Benchmarking Results}
+
+Table~\ref{tab:ssc_overall_comparison} summarizes overall SSC results on the OccuFly test split. Detailed altitude-wise numbers and per-class IoU visualizations are provided in Appendix Table~\ref{tab:ssc_occufly_comparison} and Appendix Figs.~\ref{fig:occufly_ssc_per_class_iou_bar_chart}--\ref{fig:occufly_ssc_per_class_iou_heatmap}. We abbreviate FoundationSSC as FSSC. The strongest overall semantic result is obtained by the FSSC RGB-context DPT variant with FiLM-DPT depth, while replacing the DAV2 prior with V-JEPA~2.1 FiLM-DPT in the CGFormer-style path improves SSC mIoU with similar SC IoU.
+
+\begin{table}[!htbp]
 \centering
-\caption{OccuFly test MDE comparison grouped by altitude, with Metric3Dv2-OccuFly and DepthAnything2-OccuFly altitude-wise values appended from OccuFly Table~12~\cite{gross2026occufly}.  Light pink marks the best RMSE within each altitude group.}
-\label{tab:mde_comparison_by_altitude}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{llrrrrrrr}
+\caption{Overall OccuFly SSC comparison on the test split. Light beige marks the best SC IoU and light pink marks the best SSC mIoU.}
+\label{tab:ssc_overall_comparison}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrr}
 \toprule
-Group & Method & $\delta_1 \uparrow$ & $\delta_2 \uparrow$ & $\delta_3 \uparrow$ & AbsRel $\downarrow$ & RMSE $\downarrow$ & MAE $\downarrow$ & SILog $\downarrow$ \\
+Method & SC IoU $\uparrow$ & SSC mIoU $\uparrow$ \\
 \midrule
-30 & Linear Probe RGB & 0.743 & 0.952 & 0.986 & 0.205 & 6.280 & 5.391 & 0.176 \\
- & Linear Probe Video 4 frame clip & 0.512 & 0.933 & 0.979 & 0.266 & 7.942 & 7.002 & 0.177 \\
- & SFP\_FiLM\_DPT & 0.889 & 0.961 & 0.991 & 0.111 & 4.022 & 2.847 & 0.166 \\
- & DPT & 0.415 & 0.889 & 0.940 & 0.295 & 9.505 & 8.238 & 0.350 \\
- & FiLM\_DPT\_RGB & 0.917 & 0.980 & 0.999 & 0.097 & 3.448 & 2.571 & 0.132 \\
- & DTA\_FiLM\_DPT\_Video & 0.944 & 0.982 & 0.999 & 0.081 & \cellcolor{bestmiou}2.939 & 2.051 & 0.124 \\
-\cmidrule(lr){2-9}
- & Metric3Dv2-OccuFly~\cite{gross2026occufly} & 0.460 & 0.757 & 0.992 & 0.347 & 10.917 & 10.215 & 0.101 \\
- & DepthAnything2-OccuFly~\cite{gross2026occufly} & 0.919 & 0.982 & 0.998 & 0.103 & 3.108 & 2.666 & 0.086 \\
-\midrule
-40 & Linear Probe RGB & 0.730 & 0.943 & 0.998 & 0.180 & 5.851 & 4.804 & 0.217 \\
- & Linear Probe Video 4 frame clip & 0.720 & 0.924 & 0.996 & 0.185 & 5.763 & 4.510 & 0.207 \\
- & SFP\_FiLM\_DPT & 0.729 & 0.911 & 0.988 & 0.186 & 5.665 & 4.056 & 0.220 \\
- & DPT & 0.577 & 0.794 & 0.905 & 0.239 & 9.106 & 6.916 & 0.391 \\
- & FiLM\_DPT\_RGB & 0.761 & 0.945 & 0.995 & 0.158 & 4.804 & 3.588 & 0.186 \\
- & DTA\_FiLM\_DPT\_Video & 0.737 & 0.938 & 0.997 & 0.173 & 5.191 & 3.800 & 0.195 \\
-\cmidrule(lr){2-9}
- & Metric3Dv2-OccuFly~\cite{gross2026occufly} & 0.209 & 0.802 & 0.981 & 0.395 & 13.138 & 12.625 & 0.096 \\
- & DepthAnything2-OccuFly~\cite{gross2026occufly} & 0.795 & 0.957 & 0.998 & 0.148 & \cellcolor{bestmiou}4.486 & 3.823 & 0.119 \\
-\midrule
-50 & Linear Probe RGB & 0.524 & 0.978 & 1.000 & 0.192 & 9.981 & 8.728 & 0.174 \\
- & Linear Probe Video 4 frame clip & 0.741 & 0.994 & 1.000 & 0.161 & 8.244 & 7.158 & 0.167 \\
- & SFP\_FiLM\_DPT & 0.858 & 0.995 & 1.000 & 0.110 & 5.038 & 3.777 & 0.138 \\
- & DPT & 0.375 & 0.754 & 0.872 & 0.285 & 14.243 & 12.179 & 0.378 \\
- & FiLM\_DPT\_RGB & 0.873 & 0.995 & 1.000 & 0.113 & \cellcolor{bestmiou}4.872 & 3.879 & 0.129 \\
- & DTA\_FiLM\_DPT\_Video & 0.817 & 0.998 & 1.000 & 0.122 & 5.213 & 4.165 & 0.135 \\
-\cmidrule(lr){2-9}
- & Metric3Dv2-OccuFly~\cite{gross2026occufly} & 0.283 & 0.831 & 0.987 & 0.379 & 15.373 & 14.950 & 0.099 \\
- & DepthAnything2-OccuFly~\cite{gross2026occufly} & 0.844 & 0.997 & 1.000 & 0.129 & 5.985 & 5.261 & 0.114 \\
+CGFormer DAV2 prior & 36.77 & 3.05 \\
+CGFormer V-JEPA 2.1 FiLM\_DPT\_RGB prior & 36.51 & 3.31 \\
+\fsscrgbdirect & \cellcolor{bestiou}37.68 & \cellcolor{bestmiou}3.46 \\
+\fsscrgbfilm & 35.47 & 1.73 \\
+\fsscvidmvs & 24.55 & 0.17 \\
+\fsscvidfilmmvs & 32.55 & 2.36 \\
 \bottomrule
 \end{tabular}%
 }
-\end{table*}
+\end{table}
 
-\begin{table*}[t]
+\begin{figure}[!htbp]
 \centering
-\caption{OccuFly test MDE comparison grouped by scene.  Light pink marks the best RMSE within each scene group.}
-\label{tab:mde_comparison_by_scene}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{llrrrrrrr}
-\toprule
-Group & Method & $\delta_1 \uparrow$ & $\delta_2 \uparrow$ & $\delta_3 \uparrow$ & AbsRel $\downarrow$ & RMSE $\downarrow$ & MAE $\downarrow$ & SILog $\downarrow$ \\
-\midrule
-scene\_08 & Linear Probe RGB & 0.752 & 0.985 & 0.999 & 0.159 & 6.972 & 5.715 & 0.187 \\
- & Linear Probe Video 4 frame clip & 0.665 & 0.983 & 0.999 & 0.183 & 7.465 & 6.358 & 0.192 \\
- & SFP\_FiLM\_DPT & 0.976 & 0.998 & 1.000 & 0.069 & 3.014 & 2.468 & 0.078 \\
- & DPT & 0.601 & 0.946 & 0.976 & 0.212 & 8.949 & 7.353 & 0.271 \\
- & FiLM\_DPT\_RGB & 0.975 & 0.997 & 1.000 & 0.067 & 2.934 & 2.392 & 0.079 \\
- & DTA\_FiLM\_DPT\_Video & 0.982 & 0.998 & 1.000 & 0.055 & \cellcolor{bestmiou}2.566 & 2.010 & 0.071 \\
-\midrule
-scene\_09 & Linear Probe RGB & 0.610 & 0.947 & 0.995 & 0.201 & 8.121 & 6.757 & 0.236 \\
- & Linear Probe Video 4 frame clip & 0.702 & 0.941 & 0.993 & 0.192 & 7.129 & 5.851 & 0.229 \\
- & SFP\_FiLM\_DPT & 0.741 & 0.935 & 0.990 & 0.173 & 5.805 & 4.242 & 0.206 \\
- & DPT & 0.415 & 0.734 & 0.866 & 0.289 & 12.343 & 9.983 & 0.430 \\
- & FiLM\_DPT\_RGB & 0.776 & 0.960 & 0.997 & 0.155 & \cellcolor{bestmiou}5.147 & 3.979 & 0.174 \\
- & DTA\_FiLM\_DPT\_Video & 0.734 & 0.958 & 0.998 & 0.169 & 5.542 & 4.287 & 0.179 \\
-\bottomrule
-\end{tabular}%
-}
-\end{table*}
-
-
-\subsection{SSC benchmarking results}
-
-Table~\ref{tab:ssc_occufly_comparison} reports semantic scene completion performance on OccuFly.  The published comparison rows reproduce the altitude-wise and overall values from OccuFly Table~4~\cite{gross2026occufly} for Symphonies~\cite{jiang2024symphonies} and DISC~\cite{liu2025disc}.  The CGFormer and FoundationSSC rows report values exported by the local SSC benchmark dashboard.  Fig.~\ref{fig:occufly_ssc_per_class_iou_bar_chart} further breaks down the class-wise IoU for the same evaluated SSC variants, making visible which semantic categories drive the aggregate SSC mIoU differences.  Fig.~\ref{fig:occufly_ssc_qualitative_scene_08_50_000097} shows a representative qualitative comparison of the corresponding depth and semantic occupancy outputs.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{content/images/ssc/occufly_ssc_per_class_iou_bar_chart.png}
-\caption{OccuFly SSC per-class IoU bar chart for the evaluated CGFormer and FoundationSSC variants.}
-\label{fig:occufly_ssc_per_class_iou_bar_chart}
-\end{figure*}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{content/images/ssc/occufly_ssc_per_class_iou_heatmap.png}
-\caption{OccuFly SSC per-class IoU heatmap for the evaluated CGFormer and FoundationSSC variants.}
-\label{fig:occufly_ssc_per_class_iou_heatmap}
-\end{figure*}
-
-\begin{table*}[t]
-\centering
-\caption{OccuFly SSC benchmark comparison by altitude.  Published Symphonies and DISC values follow OccuFly Table~4~\cite{gross2026occufly}; CGFormer and FoundationSSC values are from the local SSC benchmark report.  For our variants, light beige marks the best SC IoU and light pink marks the best SSC mIoU within each altitude group and the overall All group.}
-\label{tab:ssc_occufly_comparison}
-\scriptsize
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{0.72}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{llrr}
-\toprule
-Altitude & Method & SC IoU $\uparrow$ & SSC mIoU $\uparrow$ \\
-\midrule
-\multicolumn{4}{l}{\textit{Published OccuFly Table 4 baselines}} \\
-50 m & Symphonies~\cite{jiang2024symphonies} & 15.88 & 0.58 \\
-50 m & DISC~\cite{liu2025disc} & 31.10 & 2.20 \\
-40 m & Symphonies~\cite{jiang2024symphonies} & 10.71 & 0.52 \\
-40 m & DISC~\cite{liu2025disc} & 27.85 & 1.77 \\
-30 m & Symphonies~\cite{jiang2024symphonies} & 13.22 & 0.76 \\
-30 m & DISC~\cite{liu2025disc} & 26.88 & 2.23 \\
-All & Symphonies~\cite{jiang2024symphonies} & 13.68 & 0.58 \\
-All & DISC~\cite{liu2025disc} & 29.52 & 2.04 \\
-\midrule
-\multicolumn{4}{l}{\textit{Our CGFormer and FoundationSSC variants}} \\
-30 m & CGFormer DAV2 prior & 36.10 & 4.22 \\
-30 m & CGFormer V-JEPA 2.1 FiLM\_DPT\_RGB prior & \cellcolor{bestiou}36.70 & 4.39 \\
-30 m & \fsscrgbdirect & 33.21 & \cellcolor{bestmiou}5.16 \\
-30 m & \fsscrgbfilm & 6.74 & 0.26 \\
-30 m & \fsscvidmvs & 2.84 & 0.18 \\
-30 m & \fsscvidfilmmvs & 35.59 & 5.06 \\
-\addlinespace
-40 m & CGFormer DAV2 prior & \cellcolor{bestiou}38.42 & 2.86 \\
-40 m & CGFormer V-JEPA 2.1 FiLM\_DPT\_RGB prior & 29.05 & 2.12 \\
-40 m & \fsscrgbdirect & 27.85 & \cellcolor{bestmiou}4.08 \\
-40 m & \fsscrgbfilm & 22.15 & 1.69 \\
-40 m & \fsscvidmvs & 12.30 & 0.87 \\
-40 m & \fsscvidfilmmvs & 29.22 & 3.97 \\
-\addlinespace
-50 m & CGFormer DAV2 prior & 35.56 & 2.81 \\
-50 m & CGFormer V-JEPA 2.1 FiLM\_DPT\_RGB prior & \cellcolor{bestiou}42.78 & \cellcolor{bestmiou}4.06 \\
-50 m & \fsscrgbdirect & 21.16 & 2.53 \\
-50 m & \fsscrgbfilm & 19.51 & 0.75 \\
-50 m & \fsscvidmvs & 5.21 & 0.21 \\
-50 m & \fsscvidfilmmvs & 22.28 & 2.59 \\
-\addlinespace
-All & CGFormer DAV2 prior & 36.77 & 3.05 \\
-All & CGFormer V-JEPA 2.1 FiLM\_DPT\_RGB prior & 36.51 & 3.31 \\
-All & \fsscrgbdirect & \cellcolor{bestiou}37.68 & \cellcolor{bestmiou}3.46 \\
-All & \fsscrgbfilm & 35.47 & 1.73 \\
-All & \fsscvidmvs & 24.55 & 0.17 \\
-All & \fsscvidfilmmvs & 32.55 & 2.36 \\
-\bottomrule
-\end{tabular}
-}
-\end{table*}
-\normalsize
-\renewcommand{\arraystretch}{1.0}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{content/images/ssc/scene_08_50_000097_mde_appended_ssc.png}
-\caption{Qualitative OccuFly example for scene 08 at 50 m altitude, frame 000097, showing the depth-estimation context and semantic occupancy comparison used to inspect SSC failure modes beyond aggregate IoU and mIoU.}
+\includegraphics[width=0.98\linewidth]{content/images/ssc/scene_08_50_000097_mde_appended_ssc.png}
+\caption{Qualitative OccuFly depth and SSC example for scene 08 at 50~m altitude, frame 000097.}
 \label{fig:occufly_ssc_qualitative_scene_08_50_000097}
-\end{figure*}
+\end{figure}
+
+\FloatBarrier

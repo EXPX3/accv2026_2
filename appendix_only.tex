@@ -1,0 +1,28 @@
+\PassOptionsToPackage{table}{xcolor}
+\documentclass[runningheads]{llncs}
+
+\usepackage[review,year=2026,ID=1107]{accv}
+\usepackage{accvabbrv}
+\usepackage{graphicx}
+\graphicspath{{content/images/report/}{content/images/drawio/}}
+\usepackage{booktabs}
+\usepackage{wrapfig}
+\usepackage{placeins}
+\usepackage[pagebackref,breaklinks,colorlinks,citecolor=accvblue]{hyperref}
+
+\definecolor{bestmiou}{RGB}{255,229,236}
+\definecolor{bestiou}{RGB}{246,238,214}
+\newcommand{\fsscrgbdirect}{FSSC RGB ctx DPT, depth FiLM-DPT}
+\newcommand{\fsscrgbfilm}{FSSC RGB ctx FiLM-DPT, depth FiLM-DPT}
+\newcommand{\fsscvidmvs}{FSSC video ctx DTA-DPT, depth DTA-MVS}
+\newcommand{\fsscvidfilmmvs}{FSSC video ctx DTA-DPT, depth DTA-FiLM-MVS}
+
+\begin{document}
+\appendix
+\input{content/appendix/mde_scene_occufly_table}
+\input{content/appendix/ssc_detailed_results}
+
+\clearpage
+\bibliographystyle{splncs04}
+\bibliography{content/references}
+\end{document}
