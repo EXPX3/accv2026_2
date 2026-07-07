@@ -43,6 +43,12 @@
 ## Build tool directories for auxiliary files
 # latexrun
 latex.out/
+/build/
+
+## Generated top-level manuscript PDFs
+/main.pdf
+/appendix*.pdf
+/appendix*.synctex.gz
 
 ## Auxiliary and intermediate files from other packages:
 # algorithms

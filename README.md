@@ -1,39 +1,52 @@
-# Official ECCV 2024 Template
+# Conference Paper Scaffold
 
-**History** (in reverse chronological order):
-- Further modernized for ECCV 2024 by [Stefan Roth](https://github.com/sroth-visinf)
-- Imported various features from the [CVPR 2024 templates](https://github.com/cvpr-org/author-kit)
-- Based on CVPR 07 and [LNCS](https://www.springer.com/gp/computer-science/lncs/conference-proceedings-guidelines), with modifications by DAF, AZ and elle, 2008 and AA, 2010, and CC, 2011; TT, 2014; AAS, 2016; AAS, 2020; TH, 2022
-- Updated April 2002 by Antje Endemann
+This repository is the reusable conference-paper scaffold for the
+`ws_jepa_occufly_test` workspace. The `main` branch is intentionally minimal and
+should remain a clean starting point for future conference papers.
 
+Conference-specific paper state belongs on support branches:
 
-## Instructions
-- Modify the example document `main.tex` following the instructions therein
-- Project content is organized as follows:
-  - `content/references.bib`: bibliography database
-  - `content/chapters/`: manuscript chapter files, if the paper is later split into inputs
-  - `content/images/report/`: figures used by the manuscript
-  - `content/images/drawio/`: exported Draw.io figures used by the manuscript
-  - `drawio/`: editable Draw.io source diagrams
-  - `docs/`: LNCS/ACCV reference documentation
-  - `build/`: generated auxiliary files that do not need to be edited
-- Please make sure to look at all `TODO REVIEW` and `TODO FINAL` comments, which provide important instructions and todos for the review and camera-ready versions, respectively
-- With Tectonic, compile from this folder with
+```text
+main              reusable paper scaffold
+accv26-support    preserved ACCV26 paper state
+wacv27-support    fresh WACV27 starting branch
+```
 
-        tectonic -X compile main.tex
+## Structure
 
-- Either compile with `pdflatex` as
+```text
+main.tex                 paper entry point
+content/chapters/        section files included by main.tex
+content/images/          paper figures
+content/tables/          paper tables
+content/references.bib   bibliography database
+docs/                    organizer/LNCS reference documentation
+accv.sty                 organizer style file
+accvabbrv.sty            organizer abbreviation helpers
+llncs.cls                LNCS class file
+splncs04.bst             LNCS bibliography style
+```
 
-        pdflatex main
-        bibtex main
-        pdflatex main
-        pdflatex main
+Keep organizer-provided template files, class files, and bibliography styles in
+the repository. Conference organizers are strict about formatting, margins,
+fonts, and bibliography behavior; do not replace these files with generic
+LaTeX scaffolding unless the target venue provides an official update.
 
-    or compile with plain `latex` as
+## Compile
 
-        latex main
-        bibtex main
-        latex main
-        latex main
-        dvips main
-        pstopdf main.ps
+With Tectonic:
+
+```bash
+tectonic -X compile main.tex
+```
+
+With pdfLaTeX/BibTeX:
+
+```bash
+pdflatex main
+bibtex main
+pdflatex main
+pdflatex main
+```
+
+Generated PDFs and auxiliary files should not be committed on `main`.

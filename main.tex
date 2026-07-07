@@ -1,118 +1,58 @@
-\PassOptionsToPackage{table}{xcolor}
 \documentclass[runningheads]{llncs}
 
 % ---------------------------------------------------------------
-% Include basic ACCV package
- 
-% TODO REVIEW: Insert your submission number below by replacing '*****'
-% TODO FINAL: Comment out the following line for the camera-ready version
-\usepackage[review,year=2026,ID=1107]{accv}
-% TODO FINAL: Un-comment the following line for the camera-ready version
+% ACCV/ECCV-style package setup.
+%
+% Keep organizer-provided template files unchanged unless a specific
+% conference version requires an official update.
+%
+% TODO REVIEW: Set the conference year and submission ID for the target venue.
+\usepackage[review,year=2026,ID=*****]{accv}
+% TODO FINAL: Use the non-review style for camera-ready versions.
 %\usepackage{accv}
 
-% OPTIONAL: Un-comment the following line for a version which is easier to read
-% on small portrait-orientation screens (e.g., mobile phones, or beside other windows)
-%\usepackage[mobile]{accv}
-
-
-% ---------------------------------------------------------------
-% Other packages
-
-% Commonly used abbreviations (\eg, \ie, \etc, \cf, \etal, etc.)
+% Commonly used abbreviations (\eg, \ie, \etc, \cf, \etal, etc.).
 \usepackage{accvabbrv}
 
-% Include other packages here, before hyperref.
 \usepackage{graphicx}
-\graphicspath{{content/images/report/}{content/images/drawio/}}
+\graphicspath{{content/images/}}
 \usepackage{booktabs}
-\usepackage{wrapfig}
-\usepackage{placeins}
 
-% The "axessiblity" package can be found at: https://ctan.org/pkg/axessibility?lang=en
-% Its accsupp mode uses pdfTeX primitives that are unavailable under Tectonic's
-% XeTeX engine, so load it only when those primitives exist.
-\ifdefined\pdfcompresslevel
-  \usepackage[accsupp]{axessibility}  % Improves PDF readability for those with disabilities.
-\fi
-
-
-% ---------------------------------------------------------------
-% Hyperref package
-
-% It is strongly recommended to use hyperref, especially for the review version.
-% Please disable hyperref *only* if you encounter grave issues.
-% hyperref with option pagebackref eases the reviewers' job, but should be disabled for the final version.
-%
-% If you comment hyperref and then uncomment it, you should delete
-% main.aux before re-running LaTeX.
-% (Or just hit 'q' on the first LaTeX run, let it finish, and you
-%  should be clear).
-
-% TODO FINAL: Comment out the following line for the camera-ready version
+% It is strongly recommended to use hyperref for review versions.
 \usepackage[pagebackref,breaklinks,colorlinks,citecolor=accvblue]{hyperref}
-% TODO FINAL: Un-comment the following line for the camera-ready version
-%\usepackage{hyperref}
 
-% Support for ORCID icon
+% Support for ORCID icons in camera-ready author lists.
 \usepackage{orcidlink}
-
 
 \begin{document}
 
-% ---------------------------------------------------------------
-% TODO REVIEW: Replace with your title
-\title{Exploring RGB and Video V-JEPA 2.1 Features for Aerial Depth Estimation and Semantic Scene Completion} 
+\title{Paper Title}
 
-% TODO REVIEW: If the paper title is too long for the running head, you can set
-% an abbreviated paper title here. If not, comment out.
-% \titlerunning{Abbreviated paper title}
+% TODO FINAL: Replace with the camera-ready author list and affiliations.
+\author{First Author\inst{1}\orcidlink{0000-0000-0000-0000} \and
+Second Author\inst{1}\orcidlink{0000-0000-0000-0000}}
 
-% TODO FINAL: Replace with your author list. 
-% Include the authors' OCRID for the camera-ready version, if at all possible.
-\author{First Author\inst{1}\orcidlink{0000-1111-2222-3333} \and
-Second Author\inst{2,3}\orcidlink{1111-2222-3333-4444} \and
-Third Author\inst{3}\orcidlink{2222--3333-4444-5555}}
-
-% TODO FINAL: Replace with an abbreviated list of authors.
 \authorrunning{F.~Author et al.}
-% First names are abbreviated in the running head.
-% If there are more than two authors, 'et al.' is used.
 
-% TODO FINAL: Replace with your institution list.
-\institute{Princeton University, Princeton NJ 08544, USA \and
-Springer Heidelberg, Tiergartenstr.~17, 69121 Heidelberg, Germany
-\email{lncs@springer.com}\\
-\url{http://www.springer.com/gp/computer-science/lncs} \and
-ABC Institute, Rupert-Karls-University Heidelberg, Heidelberg, Germany\\
-\email{\{abc,lncs\}@uni-heidelberg.de}}
+\institute{Institution Name\\
+\email{contact@example.com}}
 
 \maketitle
 
+\begin{abstract}
+Write a concise abstract for the target conference.
 
-% \begin{abstract}
-% Aerial 3D scene understanding is essential for autonomous UAV operations such as cargo delivery, search-and-rescue, and human-UAV collaboration. Camera-based perception is attractive for these settings given its light weight, low cost, availability, and compatibility with UAV size, weight, and power constraints. This motivates methods that can infer geometry, semantics, and free space from visual observations, making Monocular Depth Estimation (MDE) and Semantic Scene Completion (SSC) key components of UAV 3D perception that enable 3D scene understanding. Aerial imagery introduces altitude-dependent scale variation, oblique viewpoints, weak texture, and different occlusion patterns, demanding domain-specific solutions. Using OccuFly, a real-world aerial dataset with RGB images, metric depth maps, and semantic occupancy grids, we study whether V-JEPA 2.1 foundation features transfer to aerial MDE and SSC. Our ablations progress from V-JEPA 2.1 image-spatial \& video-spatiotemporal feature handling, from linear probing to DPT (Dense Prediction Transformer)-style multiscale decoding, FiLM (Feature-wise Linear Modulation)-based altitude \& intrinsics conditioning for MDE, followed by injecting conditioned depth-estimation priors, deploying a learnable UAV pose-aware multi-view stereo depth-estimation module, and transferring spatiotemporal features for SSC. Through this staged analysis, we separate the contributions of representation transfer, altitude conditioning, and depth-estimation variants to improving aerial SSC.
+\keywords{Keyword One \and Keyword Two \and Keyword Three}
+\end{abstract}
 
-%   \keywords{ Aerial \and 3D Scene Understanding \and UAV Perception \and Monocular Depth Estimation \and Semantic Scene Completion \and Semantic Occupancy Prediction \and V-JEPA 2.1 \and Video Foundation models \and 2D-3D lifting \and Pose-aware multi-view stereo depth \and OccuFly }
-% \end{abstract}
-
-
-% \input{content/chapters/1_introduction}
-% \input{content/chapters/2_related_work}
-% \input{content/chapters/3_method}
-% \input{content/chapters/4_experimental_setup_and_results}
-% \input{content/chapters/5_discussion_and_conclusion}
+\input{content/chapters/1_introduction}
+\input{content/chapters/2_related_work}
+\input{content/chapters/3_method}
+\input{content/chapters/4_experiments}
+\input{content/chapters/5_conclusion}
 
 \clearpage
-\appendix
-\input{content/appendix/mde_scene_occufly_table}
-\input{content/appendix/ssc_detailed_results}
-
-\clearpage
-% ---- Bibliography ----
-%
-% BibTeX users should specify bibliography style 'splncs04'.
-% References will then be sorted and formatted in the correct style.
-%
 \bibliographystyle{splncs04}
 \bibliography{content/references}
+
 \end{document}
