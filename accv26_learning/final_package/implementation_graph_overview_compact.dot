@@ -1,0 +1,67 @@
+digraph implementation_graph_overview_compact {
+  graph [
+    rankdir=TB,
+    compound=true,
+    splines=spline,
+    overlap=false,
+    nodesep=0.45,
+    ranksep=0.55,
+    fontsize=18,
+    fontname="Helvetica",
+    labelloc=t,
+    label="Reconstructed high-level implementation graph for experiments_related"
+  ];
+  node [shape=box, style="rounded,filled", color="#444444", fontname="Helvetica", fontsize=12, margin="0.09,0.06"];
+  edge [color="#555555", arrowsize=0.75, fontname="Helvetica", fontsize=10];
+
+  raw [label="OccuFly raw data conventions\nscene_XX/{30,40,50}/images/visual\ndepth_maps, calibration.txt, SSC grids/labels\nEvidence: scripts/03, scripts/06, scripts/dpt_decoder/*, scripts_ssc/*/occufly_ssc_data.py", fillcolor="#e7f0ff"];
+  loaders [label="Shared loaders / metadata construction\nDepth: OccuFlyDepthDataset + collect_occufly_samples\nSSC: OccuFlySSCDataset + grid spec + label mapping\nVideo: clip construction / MP4 materialization", fillcolor="#e7f0ff"];
+
+  ext [label="External dependencies\nV-JEPA/V-JEPA2.1 checkpoints + repo\nDINOv3 depth modules\nFoundationSSC and CGFormer external roots/checkpoints", fillcolor="#f7e7ff"];
+
+  mde [label="Monocular depth estimation family\nLinear probe: scripts/03\nDINO-style probe: scripts/06 + vjepa21_dinov3_depth_adapter.py\nDPT multilayer: scripts/07\nDPT-FiLM / altitude / SFP: scripts/dpt_decoder/*.py", fillcolor="#eaffea"];
+  vjepa_ft [label="V-JEPA OccuFly adaptation wrappers\nRGB: scripts/08_vjepa21_finetune_occufly.py\nVideo: scripts/11_vjepa21_finetune_occufly_video.py\nFine-tuned probes: scripts/10_* and scripts/11_vjepa21_finetuned_*", fillcolor="#eaffea"];
+  video_depth [label="Video depth family\nST-LP: vjepa21video_scripts/scripts/train_stlp_depth.py\nDTA DPT-FiLM: vjepa21video_dptfilm_attention/*\nModes include repeated / real / shuffled clips", fillcolor="#eaffea"];
+  segmentation [label="Semantic segmentation launchers\nVOC download + V-JEPA/DINOv3 linear sweeps\nscripts_segmentation/dataset_download/*\nscripts_segmentation/linear_pipeline/*", fillcolor="#eaffea"];
+  ssc [label="V-JEPA / FoundationSSC semantic scene completion\nSimple scaffold: scripts_ssc/vjepafoundationssc/*\nFrozen-depth variant: scripts_ssc/vjepafoundationssc_frozendepthhead/*\nHybrid video/RGB + pose-MVS/DPT geometry: scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/*", fillcolor="#eaffea"];
+  cgformer [label="CGFormer / Aero-JEPA SSC ablation project\nCommon preparation/eval: scripts_ssc/cgformer/common/*\nAero-JEPA configs M1-M6 + final variants\nmodels/losses/tools/tests under aero_jepa_ssc_project", fillcolor="#eaffea"];
+
+  depth_outputs [label="Depth outputs and staged artifacts\ncheckpoints, metrics JSON/CSV, exported priors\noutputs/results/*; export_depth_prediction_targets.py", fillcolor="#eeeeee"];
+  ft_outputs [label="Fine-tuned V-JEPA run directories\nmanifest/config YAML + latest checkpoints\noutputs/results/vjepa21_*_finetune_occufly_*", fillcolor="#eeeeee"];
+  video_outputs [label="Video-depth outputs\nST-LP/DTA checkpoints, grouped metrics, panels/PCA visualizations", fillcolor="#eeeeee"];
+  ssc_outputs [label="SSC outputs\nssc_best.pt, ssc_latest.pt, grouped metrics, validation re-eval, visualization, sigma sweep", fillcolor="#eeeeee"];
+  cg_outputs [label="CGFormer/Aero-JEPA outputs\nfeature caches, ablation runs, Table 3 artifacts\ncache_vjepa_features.py, run_table3_experiments.sh, make_table3.py", fillcolor="#eeeeee"];
+
+  viz_tests [label="Diagnostics / visualization / tests / paper tables\nscripts/diagnostics/*, scripts/visualization/*\nscripts_ssc/vizualization/*, tests/*.py\npaper_mde_grouped_tables.py, forpaper_report snapshots", fillcolor="#fff2cc"];
+
+  raw -> loaders;
+  ext -> mde;
+  ext -> vjepa_ft;
+  ext -> video_depth;
+  ext -> segmentation;
+  ext -> ssc;
+  ext -> cgformer;
+
+  loaders -> mde;
+  loaders -> vjepa_ft [label="RGB/video frames"];
+  loaders -> video_depth [label="clips"];
+  loaders -> segmentation [label="images/labels"];
+  loaders -> ssc [label="RGB, depth, poses/intrinsics, SSC grids"];
+  loaders -> cgformer [label="prepared OccuFly SSC inputs"];
+
+  mde -> depth_outputs;
+  vjepa_ft -> ft_outputs;
+  ft_outputs -> mde [style=dashed, label="fine-tuned checkpoint reuse"];
+  ft_outputs -> video_depth [style=dashed, label="checkpoint reuse"];
+  video_depth -> video_outputs;
+  depth_outputs -> ssc [style=dashed, label="MDE depth-head initialization / priors"];
+  depth_outputs -> cgformer [style=dashed, label="depth-prior export path"];
+  ssc -> ssc_outputs;
+  cgformer -> cg_outputs;
+
+  depth_outputs -> viz_tests;
+  video_outputs -> viz_tests;
+  ssc_outputs -> viz_tests;
+  cg_outputs -> viz_tests;
+  segmentation -> viz_tests [style=dashed, label="segmentation sweep outputs"];
+}

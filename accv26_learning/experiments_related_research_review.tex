@@ -1,0 +1,548 @@
+
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=0.85in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlist[itemize]{leftmargin=*,nosep}
+\setlist[enumerate]{leftmargin=*,nosep}
+\newcommand{\evidence}[2]{\path{#1}~(#2)}
+\newcommand{\term}[1]{\textbf{#1}}
+\title{Implementation-Only Research Review of \texttt{experiments\_related}}
+\author{Evidence-backed review of the uploaded implementation export}
+\date{Generated July 7, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document reviews the uploaded implementation-only export of \path{experiments_related}.  The review is limited to code, shell launchers, configuration files, and tests present in the archive.  The archive intentionally excludes large outputs, checkpoints, logs, prediction tensors, and generated artifacts, so this review does not validate any numerical result or claim that a run completed.  Code claims cite exact paths and, where inspected, line ranges.  External method names are grounded with bibliographic sources for V-JEPA, V-JEPA 2, DINOv3, DPT, OccuFly, CGFormer, FoundationSSC, and VoxFormer \cite{vjepa2024,vjepa22025,dinov32025,dpt2021,occufly2026,cgformer2024,foundationssc2025,voxformer2023}.
+\end{abstract}
+
+\section{Scope, evidence policy, and archive inventory}
+\label{sec:scope}
+
+\paragraph{Scope.}  The evidence base is the extracted archive rooted at \path{experiments_related}.  All statements about implemented behavior are based on files in that export.  If a connection is inferred from naming, wrapper code, or a shared filesystem convention rather than a direct import or explicit call, it is marked as an inference.
+
+\paragraph{Inventory.}  The export contains 599 implementation-oriented files: 465 Python files, 49 shell scripts, 54 YAML files, 25 JSON files, one TOML file, and three text files.  The top-level directories are \path{scripts}, \path{vjepa21video_scripts}, \path{scripts_ssc}, \path{scripts_segmentation}, \path{tests}, and \path{forpaper_report}.  A hash-based duplicate scan of the extracted archive found many exact duplicate groups; the \path{forpaper_report} directory is therefore treated as a snapshot/mirror rather than a separate independent implementation family.
+
+\paragraph{Important negative evidence.}  The archive does not include trained checkpoint files, raw run logs, TensorBoard logs, prediction tensors, generated depth maps, or result tables other than code that writes those files.  Therefore this review can identify what the implementation is designed to support, but not whether any reported metric was achieved.
+
+\section{Project structure map}
+\label{sec:structure}
+
+\begin{longtable}{L{0.22\linewidth} L{0.37\linewidth} L{0.34\linewidth}}
+\toprule
+\term{Family} & \term{Primary paths} & \term{Implemented role} \\
+\midrule
+\endhead
+Monocular depth estimation (MDE) & \path{experiments_related/scripts/03_train_vjepa_linear_depth.py}; \path{06_vjepa21_dinov3_linearprobe_occufly.py}; \path{07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py}; \path{scripts/dpt_decoder/*.py} & Frozen V-JEPA/V-JEPA2.1 depth probes; DINOv3-style depth heads; DPT multilayer decoders; FiLM conditioning by altitude and camera metadata; SFP/final-layer variants; constant-depth and diagnostic baselines.  The linear probe script declares a supervised linear depth probe on frozen V-JEPA2.1 features and an OccuFly split/layout \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 3--16, 38--45}. \\
+Video depth & \path{experiments_related/vjepa21video_scripts/src/vjepa21video_depth}; \path{vjepa21video_dptfilm_attention/src} & Spatio-temporal linear probing (ST-LP) and video DPT-FiLM with dense temporal attention (DTA).  Clip construction modes are \path{repeated_stlp}, \path{real_stlp}, and \path{shuffled_stlp} in the ST-LP constants \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/constants.py}{lines 24--36}. \\
+V-JEPA2.1 RGB/video adaptation & \path{experiments_related/scripts/08_vjepa21_finetune_occufly.py}; \path{11_vjepa21_finetune_occufly_video.py}; wrappers \path{10_*} and \path{11_vjepa21_finetuned_*} & Self-supervised OccuFly-domain V-JEPA2.1 adaptation on RGB images or materialized videos.  The RGB finetuning script states that it uses RGB frames only and does not use depth maps or labels \evidence{experiments_related/scripts/08_vjepa21_finetune_occufly.py}{lines 2--9, 302--331}.  The video finetuning script materializes MP4 sequences from image folders and also states that labels/depth maps are unused \evidence{experiments_related/scripts/11_vjepa21_finetune_occufly_video.py}{lines 2--13, 176--240, 380--391}. \\
+Semantic segmentation & \path{experiments_related/scripts_segmentation/dataset_download/download_voc12.sh}; \path{scripts_segmentation/linear_pipeline/*.sh}; \path{occufly_21class_label_map.json} & Thin launcher layer around DINOv3 tools for VOC12 and OccuFly linear sweeps, plus a 21-name OccuFly label map.  The VOC script downloads and verifies VOC2012; the two sweep shell scripts exec \path{dinov3/tools/run_vjepa21_*_linear_sweep.py}. \\
+Semantic scene completion: simple/scaffold & \path{experiments_related/scripts_ssc/vjepafoundationssc} & Early V-JEPA-to-SSC pipeline with multi-layer V-JEPA backbone, context head, DPT-FiLM depth-probability head, frustum voxel pooling, and a simple 3D decoder.  This family appears as a local scaffold rather than the most advanced FoundationSSC integration. \\
+Semantic scene completion: FoundationSSC hybrid & \path{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc} & Most complete SSC implementation in the export: V-JEPA RGB/video context, DPT-FiLM or pose-aware MVS geometry branch, FoundationSSC hybrid view transformation, FoundationSSC decoder, OccuFly SSC dataset loader, losses, metrics, training, evaluation, and visualization.  The model constructor explicitly accepts \path{input_mode in {rgb,video}} and \path{geometry_branch in {dpt_depth,pose_mvs}} \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 232--264}. \\
+CGFormer / Aero-JEPA SSC ablations & \path{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project} & CGFormer-compatible ablation project with configs for baseline, M1--M6 variants, altitude lifting, depth teacher losses, V-JEPA feature caching/distillation, latent view consistency, masked-3D losses, output consistency, and Table 3 generation.  The config module enumerates altitude and V-JEPA teacher variants \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc/config.py}{lines 13--69}. \\
+Diagnostics, visualization, and reporting & \path{experiments_related/scripts/diagnostics}; \path{scripts/visualization}; \path{scripts_ssc/vizualization}; \path{scripts_ssc/*/visualize_*.py}; \path{paper_mde_grouped_tables.py} & Constant-depth baselines, scale/prediction-shift checks, depth viewers, SSC viewers, representation visualizers, and scripts for result-table aggregation. \\
+Tests & \path{experiments_related/tests/*.py}; \path{scripts_ssc/cgformer/aero_jepa_ssc_project/tests/*.py} & Unit tests for mask-aware depth resizing, SSC metric semantics, and CGFormer/Aero-JEPA components such as depth teachers, masked 3D, latent view, output consistency, Table 3 provenance, and V-JEPA feature caching. \\
+\bottomrule
+\end{longtable}
+
+\section{Data flow reconstruction}
+\label{sec:dataflow}
+
+\subsection{OccuFly data conventions}
+
+The MDE scripts expect OccuFly scene/altitude folders of the form:
+\begin{verbatim}
+scene_XX/{30,40,50}/images/visual/*.png
+scene_XX/{30,40,50}/depth_maps/*
+scene_XX/calibration.txt
+\end{verbatim}
+The frozen linear-probe script matches RGB and depth files by stem under \path{images/visual} and \path{depth_maps}; it raises an error when no RGB/depth pairs are found \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 104--147}.  The same script defines the default train/validation/test split as scenes 01--05, 06--07, and 08--09 respectively \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 9--12}.  The DINOv3-style linear probe uses the same fixed split and layout \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 60--63, 196--220}.
+
+Depth maps are handled as either NumPy arrays or image-like encodings in the inspected scripts.  Mask-aware resizing is implemented by interpolating a valid-pixel weighted depth numerator and a valid mask denominator, rather than interpolating invalid depth values directly \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 74--88}; the same pattern appears in the DINOv3-style linear probe \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 128--142} and is tested in \path{experiments_related/tests/test_mask_aware_depth_resize.py}.
+
+Camera metadata used by FiLM depth models is a five-vector:
+\[
+  m = [h_{norm}, f_x/W, f_y/H, c_x/W - 0.5, c_y/H - 0.5].
+\]
+The vector is constructed from altitude and \path{calibration.txt} intrinsics in the DPT-FiLM MDE implementation \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}{lines 420--450} and in the video-depth data layer \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/occufly_data.py}{lines 117--146}.
+
+\subsection{MDE flow}
+
+The basic MDE data path is:
+\begin{verbatim}
+OccuFly RGB + depth
+  -> OccuFly depth dataset with valid mask and metadata
+  -> frozen V-JEPA2.1 image features
+  -> depth head / DPT decoder / FiLM DPT decoder
+  -> masked depth loss
+  -> depth metrics and checkpoint selection by validation RMSE
+\end{verbatim}
+The linear probe loads a V-JEPA2.1 encoder from a local \path{vjepa2} repo or from \path{facebookresearch/vjepa2}, freezes it, and trains only a \path{Conv2d(D,1,1)} dense linear head \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 260--284, 320--352, 474--493}.  Static image inputs are repeated along a temporal dimension if the encoder expects video input \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 408--417}.  The optimizer is AdamW over head parameters only, and best validation RMSE plus final test RMSE are written to metrics outputs \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 636--670}.
+
+The DINOv3-style linear probe imports DINOv3 depth components, including \path{SigLoss}, \path{DecoderConfig}, and \path{make_depther_from_config}; it computes RMSE, MAE, AbsRel, log RMSE, SILog, and delta accuracies, uses optional SyncBatchNorm and DDP, and writes \path{metrics.json} and \path{results-depth.csv} \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 362--421, 500--505, 572--581, 739--767}.  The DPT multilayer variant exposes selected V-JEPA block maps to a DINOv3 DPT decoder and changes the default selected layers from \([11,23,37,47]\) to \([9,19,29,39]\) when the checkpoint has 40 blocks \evidence{experiments_related/scripts/07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py}{lines 45--49, 467--538, 618--622, 701--710}.
+
+\subsection{FiLM, SFP, and altitude-conditioned depth flow}
+
+The DPT-FiLM MDE scripts add metadata conditioning to DPT features.  The FiLM implementation zero-initializes the affine generator so the initial modulation is the identity \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}{lines 305--341}.  The FiLM depth model combines a DINOv3 \path{FeaturesToDepth} wrapper, a DPT-FiLM head, and a frozen V-JEPA/DINO-compatible backbone wrapper \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}{lines 344--404}.  It supports an official scene split and an altitude-generalization split in which training uses 30 m and 50 m from all scenes, validation uses 40 m in scenes 01--04, and testing uses 40 m in scenes 05--08 \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}{lines 1340--1416}.
+
+The altitude-feature variant concatenates an altitude plane to every projected DPT feature level and adapts channels back to the expected DPT dimensions; its checkpoint payload records altitude-injection metadata \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_altitude_feature_occufly.py}{classes \path{AltitudeInjectedDPTHead} and \path{VJepaDPTAltitudeFeatureDepthModel}; checkpoint payload around lines 691--710}.  The SFP variant adds \path{SimpleFeaturePyramid}, \path{make_vjepa21_final_sfp_dino_backbone}, and \path{FinalSFPFiLMDPTHead} before the same FiLM depth decoder training/evaluation loop \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_final_sfp_dpt_film_occufly.py}{classes \path{SimpleFeaturePyramid}, \path{FinalSFPFiLMDPTHead}, and training logic}.
+
+\subsection{Video-depth flow}
+
+The video-depth loader first collects sequences from \path{scene/height/images/visual} and \path{depth_maps}, attaches calibration paths, and builds target-centered clips.  Even-length clips duplicate the target frame in the middle; for example, the code comments define a length-4 offset pattern \([-1,0,0,1]\) \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/occufly_data.py}{lines 149--185, 199--244}.  Clip modes are:
+\begin{itemize}
+  \item \path{repeated_stlp}: target frame repeated through the clip;
+  \item \path{real_stlp}: temporal context around the target frame, clamped at sequence boundaries;
+  \item \path{shuffled_stlp}: deterministic shuffled context.
+\end{itemize}
+The dataset returns a tensor \([3,T,H,W]\), target depth, valid mask, metadata, UID, scene, height, and target frame fields \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/occufly_data.py}{lines 330--405}.
+
+The ST-LP model path is:
+\begin{verbatim}
+OccuFly frame sequence
+  -> target-centered clip [B,3,T,H,W]
+  -> frozen V-JEPA2.1 video grid extractor
+  -> temporal fusion (concat or mean)
+  -> linear dense depth head
+  -> FeaturesToDepth
+  -> SigLoss or L1 and depth metrics
+\end{verbatim}
+The video grid extractor returns \([B,C,T',H',W']\) and enforces divisibility by tubelet size \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/vjepa_backbone.py}{lines 57--142}.  The factory constructs a frozen encoder, computes \(T'\), selects concat/mean temporal fusion, and verifies that the optimizer covers exactly trainable ST-LP parameters \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/factory.py}{lines 13--63}.  The training script writes per-frame metrics, altitude metrics, history, best/latest checkpoints, \path{results-depth.csv}, and best validation RMSE selection \evidence{experiments_related/vjepa21video_scripts/scripts/train_stlp_depth.py}{lines 104--143, 208--351}.
+
+The DTA video-depth model uses V-JEPA2.1 video features, dense temporal attention over tubelets at each spatial cell, and a DINOv3 DPT-FiLM depth decoder \evidence{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/model.py}{lines 22--112}.  The temporal adapter uses learned-query cross-attention over the temporal sequence for each spatial location, followed by an MLP and residual mixing coefficient \evidence{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/temporal_attention.py}{lines 15--89}.  Its dataset implements \path{repeated_dta}, \path{real_dta}, and \path{shuffled_dta}; it returns clip images, target depth, valid mask, metadata, target frame ID, and clip frame IDs \evidence{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/occufly_video_dataset.py}{lines 147--230, 330--359}.  The training loop computes depth metrics, best/latest checkpoints, per-altitude and per-frame CSVs, and uses validation RMSE for best-checkpoint selection \evidence{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/train_eval.py}{lines 35--138, 162--306}.
+
+\subsection{SSC data flow}
+
+The most complete SSC data flow is implemented in \path{vjepa21video_posemvs_film_consistent_foundationssc_hybrid}.  The dataset module defines train, validation, and test scenes; height folders; image, depth, and label extensions; and a sample record containing RGB, depth, calibration, semantic label, invalid/occluded masks, clip paths, multi-view source clips, and pose fields \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/occufly_ssc_data.py}{lines 25--78}.  It builds target-centered clip indices and multi-view source indices, with source-view policies for skip or replicate behavior \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/occufly_ssc_data.py}{lines 119--200}.  Pose parsing accepts pickle, NumPy, JSON, and text/table formats; it converts camera-to-world or world-to-camera conventions when needed and raises an error when requested pose evidence is missing \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/occufly_ssc_data.py}{lines 253--377}.
+
+SSC label loading supports \path{.label}, \path{.npy}, \path{.npz}, \path{.pt}, and \path{.pkl}; invalid and occluded masks can be packed or unpacked bytes.  The loader maps raw IDs to contiguous train IDs and converts grid orientation to the internal DHW convention \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/occufly_ssc_data.py}{lines 732--812}.  The label map treats raw 0 as empty and maps known raw semantic IDs to contiguous training IDs, with 255 used as the ignore index \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/occufly_labels.py}{lines 6--65}.
+
+The SSC model path is:
+\begin{verbatim}
+OccuFly RGB/video clips + depth + intrinsics + poses + voxel labels
+  -> V-JEPA image/video context features
+  -> DPT context feature adapter
+  -> geometry branch:
+       (a) DPT-FiLM depth probability branch, or
+       (b) pose-aware MVS depth branch
+  -> FoundationSSC hybrid view transformer
+  -> FoundationSSC 3D decoder
+  -> semantic occupancy logits [B,C,D,H,W]
+  -> SSC/depth/projection diagnostics and losses
+\end{verbatim}
+The main SSC model contains explicit methods for context features, DPT depth features, pose-MVS view maps, and depth-branch execution \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 306--377}.  Its forward method returns logits plus depth logits/probabilities/dense depth, LSS and voxel volumes, proposals, projection diagnostics, and MVS diagnostics \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 379--436}.
+
+\subsection{CGFormer/Aero-JEPA data flow}
+
+The CGFormer/Aero-JEPA dataset file is a metadata-driven adapter.  Its docstring states that it expects manifest JSON/JSONL records generated from real OccuFly and lists expected keys such as image path, depth path, SSC label path, valid mask path, intrinsics, poses, altitude, frame ID, scene ID, and timestamp \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc/data/occufly_dataset.py}{lines 25--35}.  The same file explicitly states that its placeholder loading logic should be replaced or extended for a concrete storage layout, so it is evidence of a scaffolded adapter rather than a fully self-contained OccuFly reader \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc/data/occufly_dataset.py}{lines 25--35, 55--144}.
+
+The CGFormer training launcher selects either a DAV2-prior backend or a V-JEPA21 ViT-G DPT-FiLM depth-prior backend depending on config flags, writes metadata, exports environment variables, and launches a CGFormer-compatible external training script \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/tools/train_occufly.py}{lines 1--8, 31--86, 164--301}.  M2+ variants are documented in launcher metadata as using cached V-JEPA dense teacher features through \path{OCCUFLY_VJEPA_FEATURE_ROOT} \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/tools/train_occufly.py}{lines 216--258}.  The ablation queue first caches V-JEPA features and then runs M2--M6 rows before building a table \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/run_ablation_queue.sh}{lines 22--57}.
+
+\section{Model architecture families}
+\label{sec:models}
+
+\subsection{V-JEPA/V-JEPA2.1 usage}
+
+The code uses V-JEPA/V-JEPA2.1 in three distinct ways:
+\begin{enumerate}
+  \item \term{Frozen feature extraction for depth}.  MDE scripts freeze the encoder and train a linear head or DPT decoder.  The linear script asserts encoder freezing and optimizer membership exactly over head parameters \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 474--493}.  The DPT scripts assert that only decoder parameters are optimized \evidence{experiments_related/scripts/07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py}{decoder-freezing and optimizer checks around training setup}.
+  \item \term{Self-supervised OccuFly adaptation}.  The RGB finetuning script writes V-JEPA2.1 configs with \path{lambda_value_img=1.0} and \path{lambda_value_vid=0.0}; the video finetuning script writes configs with \path{lambda_value_img=0.0} and \path{lambda_value_vid=1.0} \evidence{experiments_related/scripts/08_vjepa21_finetune_occufly.py}{lines 187--293} \evidence{experiments_related/scripts/11_vjepa21_finetune_occufly_video.py}{lines 251--357}.
+  \item \term{Video-grid extraction for temporal depth and SSC}.  The video-grid extractor adapts V-JEPA2.1 to return \([B,C,T',H',W']\) selected-layer grids for clip inputs \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/vjepa_backbone.py}{lines 57--142}.  The SSC model uses video context features and, for pose MVS, per-view video features before multi-view correlation \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 306--377}.
+\end{enumerate}
+External grounding: V-JEPA is a joint-embedding predictive video representation method \cite{vjepa2024}; V-JEPA 2 is the successor self-supervised video model family referenced by the code's \path{facebookresearch/vjepa2} loaders \cite{vjepa22025,vjepa2github}.
+
+\subsection{DINOv3, DPT, and V-JEPA-to-DINO adapters}
+
+The adapter module \path{vjepa21_dinov3_depth_adapter.py} defines how a V-JEPA2.1 encoder is exposed through a DINOv3 backbone contract.  It recognizes checkpoint keys such as \path{ema_encoder}, \path{target_encoder}, and \path{encoder}; infers V-JEPA size from embedding dimension; constructs V-JEPA2.1 base/large/giant/gigantic backbones; and returns dummy CLS tokens plus reshaped patch maps for DINOv3 depth heads \evidence{experiments_related/scripts/vjepa21_dinov3_depth_adapter.py}{lines 55--145, 148--234}.  The multilayer wrapper exposes selected intermediate block maps and adjusts default DPT layer indices for 40-block V-JEPA-g checkpoints \evidence{experiments_related/scripts/vjepa21_dinov3_depth_adapter.py}{lines 237--363}.  This connects V-JEPA features to DPT-style dense prediction, whose external architectural reference is DPT \cite{dpt2021}.  The DINOv3 dependency is grounded by the code imports from \path{dinov3.eval.depth} and the external DINOv3 implementation/report \cite{dinov32025,dinov3github}.
+
+\subsection{Linear, DPT, FiLM, SFP, and probability depth heads}
+
+The implemented depth-head families are:
+\begin{itemize}
+  \item \term{Dense linear depth head}: a 1x1 convolution on frozen V-JEPA patch-grid features \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 260--284}.
+  \item \term{DINOv3 linear depth probe}: DINOv3-style depther decoder on frozen V-JEPA features, optimized by DINOv3 \path{SigLoss} \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 362--366, 500--505, 576--581}.
+  \item \term{Multilayer DPT decoder}: selected V-JEPA block maps are routed to a DINOv3 DPT decoder \evidence{experiments_related/scripts/07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py}{lines 45--49, 618--622}.
+  \item \term{DPT-FiLM decoder}: DPT feature maps are modulated by an altitude/intrinsics embedding before fusion/refinement \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}{lines 305--404}.
+  \item \term{Altitude feature-plane DPT}: altitude is concatenated as a spatial plane to DPT feature levels before channel adaptation \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_altitude_feature_occufly.py}{classes \path{AltitudeInjectedDPTHead} and \path{VJepaDPTAltitudeFeatureDepthModel}}.
+  \item \term{Final-layer SFP + DPT-FiLM}: a simple feature pyramid is derived from final V-JEPA features before DPT-FiLM decoding \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_final_sfp_dpt_film_occufly.py}{classes \path{SimpleFeaturePyramid} and \path{FinalSFPFiLMDPTHead}}.
+  \item \term{Depth probability head for SSC}: DPT-FiLM or pose-MVS geometry branches output depth logits/probabilities over metric bins and dense depth as expectation, so SSC view transforms receive both probabilities and context features \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/pose_mvs_geometry.py}{lines 156--205, 208--298}.
+\end{itemize}
+
+\subsection{Temporal attention and video adaptation}
+
+ST-LP implements two fusion operators: temporal concatenation of \([B,C,T,H,W]\) into \([B,TC,H,W]\), and temporal mean pooling \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/depth_heads.py}{lines 39--76}.  DTA implements dense temporal attention using a learned query over tubelets at every spatial cell \evidence{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/temporal_attention.py}{lines 15--89}.  In the SSC model, separate temporal adapters can be used for context and depth branches before FoundationSSC hybrid view transformation \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 730--793}.
+
+\subsection{Semantic scene completion architectures}
+
+The FoundationSSC hybrid implementation rewrites FoundationSSC geometry configuration to the OccuFly grid, checks for stale SemanticKITTI dimensions, rebins depth probabilities to LSS bins, runs FoundationSSC LSS/proposal/VoxFormer/dual-fusion modules, and decodes to DHW semantic logits \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/foundation_ssc/real_adapters.py}{lines 44--64, 103--141, 169--229, 326--456, 459--499}.  The code imports and bootstraps FoundationSSC rather than reimplementing it fully; FoundationSSC itself is externally described as a semantic/geometric prior decoupling framework \cite{foundationssc2025,foundationsscgithub}.  The use of VoxFormer-like modules is explicit through the FoundationSSC adapter's \path{VoxFormer} and hybrid view transformer calls \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/foundation_ssc/real_adapters.py}{lines 397--456}; VoxFormer is externally grounded by the CVPR 2023 paper \cite{voxformer2023}.
+
+The pose-MVS branch replaces a frozen monocular DPT geometry branch with multi-view pose-aware correlation.  It projects target depth hypotheses into source views using intrinsics and world-to-camera transforms, samples source view features with \path{grid_sample}, aggregates cosine correlations, regularizes the cost volume with a 3D CNN, and conditions output depth logits with metadata FiLM \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/pose_mvs_geometry.py}{lines 208--360}.  The branch returns a dense depth expectation consistent with its conditioned probability distribution \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/pose_mvs_geometry.py}{lines 156--205, 260--298}.
+
+\subsection{CGFormer / Aero-JEPA architecture variants}
+
+The Aero-JEPA project provides a CGFormer-compatible wrapper rather than a standalone CGFormer implementation.  The orchestrator runs a base CGFormer-compatible model, adds altitude-lifting outputs where configured, requires depth teachers for in-model frustum variants during training, and optionally runs a V-JEPA inference branch under \path{torch.no_grad()} \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc/models/aero_jepa_ssc.py}{lines 13--97}.  Altitude lifting includes a depth-head variant and a probabilistic frustum splatter that maps per-pixel feature/depth distributions into a voxel volume \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc/models/altitude_lifting.py}{lines 14--134, 137--243}.  CGFormer is externally grounded by the context-and-geometry-aware voxel transformer paper \cite{cgformer2024}.
+
+\section{Experiment variants and ablations}
+\label{sec:variants}
+
+\subsection{MDE and video-depth variants}
+
+\begin{longtable}{L{0.12\linewidth} L{0.25\linewidth} L{0.26\linewidth} L{0.17\linewidth} L{0.13\linewidth}}
+\toprule
+\term{ID} & \term{Entry / launch evidence} & \term{Inputs and model} & \term{Losses / metrics} & \term{Implemented test} \\
+\midrule
+\endhead
+MDE-LP & \path{experiments_related/scripts/03_train_vjepa_linear_depth.py}; standard CLI entrypoint inferred from argument parser and training function & OccuFly RGB/depth; frozen V-JEPA2.1; 1x1 dense linear head & Masked MSE; RMSE; best validation RMSE \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 425--455, 636--670} & Whether frozen V-JEPA2.1 patch features linearly predict depth. \\
+MDE-DINO-LP & \path{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py} & OccuFly RGB/depth; V-JEPA backbone adapted to DINOv3 depther decoder & Masked SigLoss; RMSE, MAE, AbsRel, log RMSE, SILog, delta1--3 \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 362--421} & Whether DINOv3-style depth probing improves over a plain linear head. \\
+MDE-DPT & \path{experiments_related/scripts/07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py} & Selected V-JEPA layers to DPT decoder; frozen encoder & SigLoss and the same depth metrics; SyncBN/DDP optional \evidence{experiments_related/scripts/07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py}{lines 467--538, 701--710} & Whether multi-level V-JEPA features support DPT-style dense decoding. \\
+MDE-DPT-FiLM & \path{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py} & OccuFly RGB/depth/calibration/altitude; V-JEPA-DPT features; metadata FiLM & DINOv3 SigLoss; optional depth-bin/probability settings; per-altitude metrics and evaluation/finalization args \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}{lines 305--450, 964--1040, 1340--1416} & Whether altitude and intrinsics conditioning improve/alter monocular depth estimation. \\
+MDE-alt-plane & \path{train_vjepa21_vitG_dpt_altitude_feature_occufly.py} under \path{scripts/dpt_decoder} & Altitude plane concatenated to projected DPT levels & Same DPT-FiLM family metrics; checkpoint records altitude injection metadata & Alternative conditioning mechanism: spatial altitude feature vs FiLM. \\
+MDE-SFP-FiLM & \path{train_vjepa21_vitG_final_sfp_dpt_film_occufly.py} under \path{scripts/dpt_decoder} & Final V-JEPA layer plus simple feature pyramid feeding DPT-FiLM head & Same depth metrics; debug prints feature shapes and best \path{dpt_film_best.pt} checkpoint & Whether final-layer SFP can substitute for explicit multi-layer V-JEPA features. \\
+RGB-JEPA-FT & \path{experiments_related/scripts/08_vjepa21_finetune_occufly.py}; launches \path{vjepa2/app/main.py} & RGB frames only, one-frame clips; V-JEPA2.1 self-supervised objective & JEPA image loss; no depth/label loss \evidence{experiments_related/scripts/08_vjepa21_finetune_occufly.py}{lines 2--9, 187--360} & OccuFly RGB-domain adaptation of V-JEPA2.1 without supervised depth labels. \\
+Video-JEPA-FT & \path{experiments_related/scripts/11_vjepa21_finetune_occufly_video.py}; launches \path{vjepa2/app/main.py} & Materialized MP4 videos from OccuFly frame sequences & JEPA video loss; no depth/label loss \evidence{experiments_related/scripts/11_vjepa21_finetune_occufly_video.py}{lines 176--240, 251--427} & OccuFly temporal adaptation of V-JEPA2.1. \\
+FT-probe wrappers & \path{experiments_related/scripts/10_vjepa21_finetuned_linearprobe_occufly.py}; \path{11_vjepa21_finetuned_DPT_multilayer_decoder_occufly.py} & Fine-tuned RGB/video V-JEPA checkpoints selected from output dirs & Reuses base LP/DPT training and metrics & Whether OccuFly-adapted V-JEPA features improve depth probes. \\
+ST-LP repeated/real/shuffled & \path{experiments_related/vjepa21video_scripts/scripts/train_stlp_depth.py} & Target-centered clips; frozen V-JEPA video grid; concat or mean temporal fusion; linear head & SigLoss or L1; depth metrics and per-frame/per-altitude CSVs \evidence{experiments_related/vjepa21video_scripts/scripts/train_stlp_depth.py}{lines 104--143, 208--351} & Whether real temporal context helps relative to repeated or shuffled context. \\
+DTA-DPT-FiLM repeated/real/shuffled & \path{vjepa21video_dptfilm_attention/scripts/train_video_dptfilm_attention.py} & V-JEPA video features; dense temporal attention; DINOv3 DPT-FiLM decoder & SigLoss; same depth metrics; best \path{dta_dptfilm_best.pt} \evidence{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/train_eval.py}{lines 35--138, 162--306} & Whether learned temporal attention helps video depth prediction. \\
+Constant-depth / diagnostics & \path{experiments_related/scripts/05_constant_depth_baseline.py}; \path{scripts/diagnostics/*.py} & OccuFly depth maps and predictions where applicable & Baseline depth errors, scale-error and prediction-shift diagnostics & Sanity checks and baseline calibration rather than a trainable architecture. \\
+\bottomrule
+\end{longtable}
+
+\subsection{SSC variants}
+
+\begin{longtable}{L{0.14\linewidth} L{0.25\linewidth} L{0.27\linewidth} L{0.17\linewidth} L{0.10\linewidth}}
+\toprule
+\term{ID} & \term{Entry / launch evidence} & \term{Inputs and model} & \term{Losses / metrics} & \term{Implemented test} \\
+\midrule
+\endhead
+Simple V-JEPA-SSC & \path{experiments_related/scripts_ssc/vjepafoundationssc} & V-JEPA multi-layer backbone, context head, DPT-FiLM depth-probability head, frustum voxel pooling, simple 3D decoder & Local SSC/depth losses and metrics in the scaffold & Early end-to-end V-JEPA-to-SSC path. \\
+FoundationSSC hybrid DPT-depth & \path{vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py} with \path{geometry_branch=dpt_depth} & RGB or video V-JEPA context; DPT-FiLM depth probabilities; FoundationSSC hybrid view transformer and decoder & Total loss combines SSC semantic/scaling/occupancy and depth losses; metrics include \path{ssc_miou}, \path{occ_iou}/\path{sc_iou}, depth diagnostics \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 680--878, 888--972} & Whether pretrained/frozen depth priors can drive FoundationSSC-style SSC on OccuFly. \\
+FoundationSSC pose-MVS & Same path with \path{geometry_branch=pose_mvs}; pose MVS requires \path{input_mode=video} & Multi-view RGB/video clips, intrinsics, poses, V-JEPA view features, pose-aware cost volume, FiLM-conditioned depth probabilities, FoundationSSC view transformer & Same SSC/depth losses; MVS diagnostics include valid-warp fraction and source-view counts \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/pose_mvs_geometry.py}{lines 208--360} \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 342--377, 1457--1581} & Whether pose-aware multi-view geometry replaces monocular DPT depth in SSC. \\
+FoundationSSC RGB-current depth source & Same SSC path with \path{dpt_depth_feature_source=rgb_current} & Optional RGB-current depth backbone for depth branch instead of video DTA feature source & Same loss and metric stack & Ablation of depth feature source. \\
+SSC debug/eval/visual modes & Same SSC train script; visualization scripts in sibling dirs & Existing model/checkpoint inputs, batch data, voxel outputs & Shape assertions; metrics JSON/CSV; live/static viewers & Diagnostics for shape, probability, metric, and visualization consistency. \\
+\bottomrule
+\end{longtable}
+
+\subsection{CGFormer/Aero-JEPA Table 3 variants}
+
+The CGFormer/Aero-JEPA configs implement the following ablation rows.  This table records code/config evidence only; it does not report measured results.
+
+\begin{longtable}{L{0.13\linewidth} L{0.31\linewidth} L{0.34\linewidth} L{0.15\linewidth}}
+\toprule
+\term{Row} & \term{Config evidence} & \term{Enabled mechanisms} & \term{Implemented test} \\
+\midrule
+\endhead
+Baseline & \path{configs/occufly/baseline.yaml} and \path{tools/run_table3_experiments.sh} & No altitude lifting, V-JEPA distillation, latent view, masked 3D, or output consistency losses. & CGFormer-compatible OccuFly baseline. \\
+M1 prior & \path{m1_prior_altitude_lifting.yaml} & Altitude-conditioned depth-prior backend; depth distribution and altitude-normalized depth loss. & Altitude/depth prior without in-model GT/V-JEPA teacher branch. \\
+M1 real GT & \path{m1_real_gtdepth.yaml} & In-model probabilistic frustum lifting using GT metric-depth teacher; teacher disabled at inference. & GT-depth teacher variant. \\
+M1 real VJ & \path{m1_real_vjepateacher.yaml} & In-model probabilistic frustum lifting using V-JEPA21 ViT-G DPT-FiLM depth-prior teacher; distill-only mode; FiLM conditioning by altitude/camera intrinsics. & V-JEPA depth-teacher variant. \\
+M1 real GT+VJ & \path{m1_real_gtdepth_vjepateacher.yaml} & Both GT-depth and V-JEPA teacher losses with separate KL/L1 weights. & Combined teacher variant. \\
+M2 & \path{m2_vjepa_distill.yaml} & Altitude backend plus V-JEPA distillation loss. & 2D V-JEPA teacher feature distillation. \\
+M3 & \path{m3_latent_view.yaml}; \path{m3_no_2d_distill_latent_view_only.yaml} & Paired training with V-JEPA distillation and latent-view consistency, or latent-only ablation. & Whether latent view consistency contributes independently or with 2D distillation. \\
+M4 & \path{m4_masked3d_*.yaml} & Masked-3D loss with block, column, frustum, mixed, or random masks. & Mask pattern ablation. \\
+M5 & \path{m5_latent_view_masked3d.yaml} & V-JEPA distillation, latent-view consistency, and masked-3D loss. & Combined M2/M3/M4 mechanisms. \\
+M6 & \path{m6_full_with_output_consistency.yaml} & M5 plus output-consistency loss. & Full ablation stack. \\
+Table generator & \path{tools/make_table3.py} & Row metadata verification against expected flags; writes CSV, Markdown, and TeX tables \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/tools/make_table3.py}{lines 19--184}. & Prevents table rows from being built from mismatched config metadata. \\
+\bottomrule
+\end{longtable}
+
+\section{Losses, metrics, optimization, and checkpointing}
+\label{sec:losses}
+
+\subsection{Depth losses and metrics}
+
+\begin{longtable}{L{0.20\linewidth} L{0.42\linewidth} L{0.30\linewidth}}
+\toprule
+\term{Name} & \term{Definition in code} & \term{Evidence} \\
+\midrule
+\endhead
+Masked MSE & Mean squared error over valid depth pixels. & \path{masked_mse} in \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 425--455}. \\
+DINOv3 SigLoss & Imported DINOv3 \path{SigLoss}, applied with valid masks in linear/DPT/DTA variants. & \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 362--366, 500--505}; \evidence{experiments_related/scripts/07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py}{lines 618--622}; \evidence{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/train_eval.py}{lines 35--39}. \\
+Masked L1 / relative L1 & Video ST-LP can use L1; SSC depth L1 supports meter or relative mode. & \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/losses_metrics.py}{classes \path{MaskedL1Loss} and \path{MetricAccumulator}}; \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/losses_ssc.py}{lines 89--107}. \\
+Hard depth CE & Metric GT depth is assigned to depth-bin indices and supervised by cross entropy. & \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/losses_ssc.py}{lines 35--48}. \\
+Soft depth KL/CE & Gaussian target distributions around metric GT depth supervise predicted bin distributions. & \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/losses_ssc.py}{lines 51--86}. \\
+Depth probability loss & Combines soft/hard CE and L1 terms under configurable weights. & \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/losses_ssc.py}{lines 110--138}. \\
+Altitude depth distribution/loss & CGFormer/Aero-JEPA altitude depth loss uses CE over metric/altitude-normalized bins, expected-depth L1, and optional smoothness. & \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc/models/altitude_lifting.py}{lines 246--323}. \\
+\bottomrule
+\end{longtable}
+
+Depth metrics are implemented as follows.  RMSE is \(\sqrt{\operatorname{mean}((\hat d-d)^2)}\) over valid pixels; MAE is mean absolute error; AbsRel is \(\operatorname{mean}(|\hat d-d|/d)\); SqRel is \(\operatorname{mean}((\hat d-d)^2/d)\); log RMSE and SILog are computed from valid log-depth differences; delta accuracies count valid pixels satisfying \(\max(\hat d/d,d/\hat d) < 1.25^k\) for \(k\in\{1,2,3\}\).  These accumulators appear in the DINOv3-style probe, DPT, ST-LP, and DTA video-depth paths \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 370--421} \evidence{experiments_related/scripts/07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py}{lines 467--538} \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/losses_metrics.py}{lines 69--143} \evidence{experiments_related/vjepa21video_scripts/vjepa21video_dptfilm_attention/src/vjepa21video_dptfilm_attention/train_eval.py}{lines 42--99}.
+
+\subsection{SSC losses and metrics}
+
+The FoundationSSC hybrid loss stack includes semantic cross-entropy over voxel logits, geometric scaling loss, semantic scaling loss, occupancy loss from semantic logits, and optional depth CE/L1 terms.  The implementation exposes a \path{total_loss} that combines these terms with user-provided weights \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/losses_ssc.py}{lines 141--172 and total-loss function around line 221}.  The SSC training loop calls \path{total_loss} on model outputs and batch labels/depth maps during training \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 1271--1293}.
+
+The SSC metric accumulator treats raw/train class 0 as empty/free and 255 as invalid/unknown.  It includes empty voxels in IoU unions so false positives in free space are penalized, while excluding class 0 from the final semantic mIoU; this behavior is stated in the module docstring and tested in \path{test_ssc_metric_accumulator.py} \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/metrics_ssc.py}{lines 14--22, 47--116}.  The metrics include \path{sc_iou}, \path{occ_iou}, \path{ssc_miou}, \path{miou_occupied_classes}, \path{miou_with_empty}, per-class IoU, valid voxel fraction, and occupied voxel fraction \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/metrics_ssc.py}{lines 82--137}.
+
+CGFormer/Aero-JEPA losses are dispatched by \path{AeroJEPASSCLoss}.  The loss adds baseline SSC loss and optional depth, GT/V-JEPA teacher, V-JEPA distillation, latent-view, masked-3D, and output-consistency losses according to flags and weights \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc/losses/aero_jepa_ssc_loss.py}{lines 13--117}.  Table 3 provenance checking verifies that run metadata matches each expected row before table generation \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/tools/make_table3.py}{lines 19--184}.
+
+\subsection{Optimization, DDP, schedulers, and checkpoint selection}
+
+The code consistently separates frozen representation parameters from trainable heads/decoders.  Examples include strict linear-probe checks in MDE \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 474--493}, decoder-only optimization in DINOv3 linear/DPT probes \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 576--581}, ST-LP trainable-parameter checks \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/factory.py}{lines 50--63}, and SSC optimizer-group coverage checks across depth, context, hybrid view, and decoder groups \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 888--925}.
+
+Distributed training is implemented in several paths.  The DINOv3-style probe reads \path{WORLD_SIZE}, \path{RANK}, and \path{LOCAL_RANK}, uses NCCL for CUDA, and supports a timeout environment variable \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 99--119}.  Depth scripts optionally convert to SyncBatchNorm before DDP wrapping \evidence{experiments_related/scripts/06_vjepa21_dinov3_linearprobe_occufly.py}{lines 572--581}.  The SSC script includes DDP and AMP helpers, gradient-scaler use, non-finite loss/gradient skips, and warmup+cosine LambdaLR scheduling \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 90--122, 888--925, 1171--1454}.
+
+Best-checkpoint rules differ by task.  Depth scripts select by validation RMSE \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 636--670} \evidence{experiments_related/vjepa21video_scripts/scripts/train_stlp_depth.py}{lines 208--284}.  The FoundationSSC hybrid script selects the best checkpoint lexicographically by (\path{ssc_miou}, \path{sc_iou}/\path{occ_iou}, -\path{depth_rmse}) and then loads the best checkpoint for final test evaluation \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 1384--1447}.
+
+\section{Implementation connections and dependency graph}
+\label{sec:dependencies}
+
+\subsection{Explicit and inferred stage connections}
+
+\begin{longtable}{L{0.25\linewidth} L{0.34\linewidth} L{0.34\linewidth}}
+\toprule
+\term{Producer} & \term{Consumer} & \term{Evidence and status} \\
+\midrule
+\endhead
+V-JEPA2.1 public/local checkpoint & MDE linear/DINO/DPT/FiLM/video/SSC scripts & Explicit checkpoint defaults and loaders in MDE and SSC scripts \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 38--45, 320--352}; \evidence{experiments_related/scripts/vjepa21_dinov3_depth_adapter.py}{lines 55--145}. \\
+RGB/video OccuFly V-JEPA finetune outputs & Fine-tuned linear/DPT wrappers & Explicit wrapper scripts select RGB or video finetuned checkpoint dirs and call base depth scripts \evidence{experiments_related/scripts/11_vjepa21_finetuned_DPT_multilayer_decoder_occufly.py}{lines 2--12, 27--128, 172--204}. \\
+MDE DPT-FiLM best checkpoint & SSC DPT-depth branch & Explicit \path{DEFAULT_MDE_CHECKPOINT}; SSC build function can load MDE checkpoint into frozen depth head for \path{geometry_branch=dpt_depth} \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 73--76, 846--857}. \\
+Video DTA features & SSC video context/depth branches & Explicit construction of video backbones and context/depth temporal attention adapters in SSC build function \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 730--793}. \\
+Pose and MVS source clips & Pose-aware MVS depth branch & Explicit dataset return fields and model method \path{_extract_pose_mvs_view_maps}; pose-MVS branch requires video input and multi-view clips \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/occufly_ssc_data.py}{lines 172--200, 253--377, 814--886}; \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 342--377}. \\
+V-JEPA depth-prior tree / cached features & CGFormer M1/M2+ ablations & Explicit environment variables and metadata in CGFormer launcher; ablation queue runs feature caching before M2--M6 \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/tools/train_occufly.py}{lines 216--258}; \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/run_ablation_queue.sh}{lines 22--57}. \\
+Segmentation label map & OccuFly segmentation linear sweep & Inference from label-map path and shell launcher; the export contains only a label JSON and wrappers that exec DINOv3 tools, not the implementation of those external tools. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Text dependency graph}
+
+\begin{verbatim}
+External repos/checkpoints:
+  facebookresearch/vjepa2 or local vjepa2
+  dinov3/eval/depth
+  FoundationSSC external tree
+  CGFormer/Efficient-Swin-OccuFly external tree
+  optional DAV2 / V-JEPA depth-prior trees
+
+OccuFly dataset:
+  RGB frames + depth maps + calibration
+  + semantic voxel labels + invalid/occluded masks
+  + optional poses and MVS source frames
+
+MDE path:
+  OccuFly RGB/depth -> frozen V-JEPA -> LP/DPT/DPT-FiLM/SFP -> depth metrics
+
+Video depth path:
+  OccuFly sequence -> target-centered clip -> V-JEPA video grids
+  -> ST-LP or dense temporal attention -> depth metrics
+
+SSC path:
+  OccuFly SSC sample -> V-JEPA context + geometry depth branch
+  -> FoundationSSC hybrid view transform -> FoundationSSC decoder
+  -> SSC/depth metrics
+
+CGFormer ablation path:
+  OccuFly metadata + depth-prior/cache roots -> CGFormer backend launcher
+  -> row metadata -> Table 3 generator
+\end{verbatim}
+
+\subsection{Shared conventions}
+
+Shared filesystem conventions include hard-coded default roots under \path{/datatank/giridhar.vb/...}, fixed scene splits, height folders \path{30}, \path{40}, and \path{50}, V-JEPA2.1 checkpoint names such as \path{vjepa2_1_vitG_384.pt}, and output names such as \path{metrics.json}, \path{results-depth.csv}, \path{history.csv}, \path{*_best.pt}, and \path{*_latest.pt}.  Shared metadata conventions include the altitude/intrinsics vector used by FiLM and SSC depth branches.  Shared DPT conventions include selected layers, DPT feature dimensions, depth-bin/norm choices, and DINOv3 \path{FeaturesToDepth} wrappers.
+
+\section{Scientific completeness, constraints, and reproducibility risks}
+\label{sec:risks}
+
+The following items are factual constraints or failure modes visible in code; they are not claims about actual experiment outcomes.
+
+\begin{longtable}{L{0.28\linewidth} L{0.63\linewidth}}
+\toprule
+\term{Finding} & \term{Evidence} \\
+\midrule
+\endhead
+No numeric result validation from the export & Outputs, checkpoints, logs, generated predictions, and large tensors are excluded.  The code writes metrics and checkpoints, but the archive does not contain run artifacts to verify any reported score. \\
+External repository dependency & MDE adapters depend on local or remote V-JEPA2 and DINOv3 modules \evidence{experiments_related/scripts/vjepa21_dinov3_depth_adapter.py}{lines 462--473}.  FoundationSSC adapters bootstrap an external FoundationSSC tree and import \path{mmdet3d_plugin} \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/foundation_ssc/real_adapters.py}{lines 44--64}.  CGFormer launchers select external backend scripts \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/tools/train_occufly.py}{lines 73--86, 279--301}. \\
+Hard-coded local path assumptions & Default dataset/checkpoint/output roots point to \path{/datatank/giridhar.vb/...} in MDE, video-depth, and CGFormer scripts \evidence{experiments_related/scripts/03_train_vjepa_linear_depth.py}{lines 38--45}; \evidence{experiments_related/vjepa21video_scripts/src/vjepa21video_depth/constants.py}{lines 7--22}; \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/tools/train_occufly.py}{lines 31--44}. \\
+Pose-MVS input preconditions & Pose MVS requires video input, multi-view clips, intrinsics, and world-to-camera transforms; pose lookup raises when requested pose data is missing \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/train_vjepa_occufly_ssc.py}{lines 232--264, 342--377}; \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/occufly_ssc_data.py}{lines 253--377}. \\
+Grid and coordinate convention sensitivity & The SSC loader converts labels to internal DHW orientation, remaps raw IDs, validates shapes, and the FoundationSSC adapter errors if SemanticKITTI default dimensions remain after rewriting \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/occufly_ssc_data.py}{lines 794--812}; \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/foundation_ssc/real_adapters.py}{lines 169--229}. \\
+Metric semantics must be reported carefully & The SSC metric includes empty/free voxels in IoU unions to penalize free-space false positives, but excludes class 0 from final semantic mIoU \evidence{experiments_related/scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc/metrics_ssc.py}{lines 14--22, 82--116}; corresponding tests exist in \path{experiments_related/tests/test_ssc_metric_accumulator.py}. \\
+CGFormer metadata adapter is not a complete raw-reader by itself & The Aero-JEPA OccuFly dataset docstring states that it expects real manifests and that placeholder loading should be replaced or extended for concrete storage \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc/data/occufly_dataset.py}{lines 25--35}. \\
+CGFormer in-model frustum variants require patched hooks & The CGFormer launcher detects real in-model CGFormer hooks and refuses to silently fall back when a required hook is absent \evidence{experiments_related/scripts_ssc/cgformer/aero_jepa_ssc_project/tools/train_occufly.py}{lines 53--70 and in-model fallback checks near launch}. \\
+Split-protocol ambiguity is explicit in code & The MDE DPT-FiLM script supports both an official scene split and an altitude split that trains on 30/50 m and evaluates 40 m; those protocols answer different questions and should not be merged in paper tables without separate labels \evidence{experiments_related/scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}{lines 1340--1416}. \\
+Duplicate/mirror content & The archive includes \path{forpaper_report} snapshots in addition to primary experiment code.  This review treats mirrors as supporting copies, not independent implementations. \\
+\bottomrule
+\end{longtable}
+
+\section{Paper-facing summaries}
+\label{sec:paper}
+
+\subsection{Concise implementation summary}
+
+The implemented system studies OccuFly monocular/video depth and semantic scene completion using V-JEPA/V-JEPA2.1 representations.  The depth side includes frozen V-JEPA linear probes, DINOv3-style depth probing, DPT multilayer decoding, altitude/intrinsics FiLM conditioning, SFP final-layer variants, RGB/video self-supervised V-JEPA adaptation, and video temporal-ablation probes.  The SSC side contains a FoundationSSC-hybrid pipeline in which V-JEPA RGB/video context features and either DPT-FiLM depth probabilities or pose-aware multi-view stereo depth probabilities are transformed into 3D volumes and decoded into semantic occupancy.  A separate CGFormer/Aero-JEPA project implements ablation configurations for altitude priors, V-JEPA teachers, latent-view consistency, masked-3D learning, and output consistency.  This summary is supported by the primary paths and evidence cited in Sections~\ref{sec:structure}--\ref{sec:variants}; it is not a claim of completed numerical performance.
+
+\subsection{Nomenclature and symbols}
+
+\begin{longtable}{L{0.22\linewidth} L{0.68\linewidth}}
+\toprule
+\term{Term / symbol} & \term{Meaning in the implementation} \\
+\midrule
+\endhead
+V-JEPA / V-JEPA2.1 & Video/image representation backbone loaded from V-JEPA/V-JEPA2 repositories or checkpoints and used frozen or self-supervised finetuned. External references: \cite{vjepa2024,vjepa22025}. \\
+DINOv3 depther & DINOv3 depth-evaluation components such as \path{SigLoss}, \path{DecoderConfig}, \path{FeaturesToDepth}, and DPT heads used with V-JEPA feature adapters \cite{dinov32025,dinov3github}. \\
+DPT & Dense Prediction Transformer style multilayer dense prediction decoder \cite{dpt2021}. \\
+FiLM & Feature-wise linear modulation by metadata embedding, implemented for altitude and camera intrinsics; affine generators are initialized to identity in the inspected FiLM blocks. \\
+SFP & Simple Feature Pyramid derived from final V-JEPA features before DPT-FiLM decoding. \\
+ST-LP & Spatio-temporal linear probe: V-JEPA video grid features fused by temporal concat or mean, then a linear depth head. \\
+DTA & Dense Temporal Attention: learned-query temporal attention over tubelets at each spatial cell before DPT-FiLM decoding. \\
+SSC & Semantic Scene Completion: dense voxel occupancy and semantic prediction. \\
+SC IoU / Occ IoU & Completion/occupancy IoU computed by collapsing non-empty classes to occupied. \\
+SSC mIoU & Mean IoU over semantic classes excluding empty class 0 but respecting ignore label 255. \\
+\(d,\hat d\) & Ground-truth and predicted depth. \\
+\(K\) & Camera intrinsics matrix; per-sample metadata also uses normalized \(f_x,f_y,c_x,c_y\). \\
+\(T_{wc}\), \(T_{cw}\) & World-to-camera and camera-to-world transforms as parsed/converted by pose-loading code. \\
+\(D,H,W\) & Internal SSC voxel dimensions in depth-height-width convention after label conversion. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Text diagrams}
+
+\paragraph{Depth pipeline.}
+\begin{verbatim}
+OccuFly RGB/depth/calibration
+  -> mask-aware resize + valid mask + metadata
+  -> V-JEPA2.1 frozen/adapted backbone
+  -> {linear head | DINOv3 depther | DPT | DPT-FiLM | SFP-DPT-FiLM}
+  -> masked depth loss
+  -> RMSE / MAE / AbsRel / SqRel / SILog / delta metrics
+\end{verbatim}
+
+\paragraph{Video depth pipeline.}
+\begin{verbatim}
+OccuFly ordered frames
+  -> repeated / real / shuffled target-centered clips
+  -> V-JEPA2.1 video grids
+  -> {temporal concat/mean ST-LP | dense temporal attention}
+  -> depth decoder
+  -> per-frame and per-altitude depth metrics
+\end{verbatim}
+
+\paragraph{FoundationSSC hybrid pipeline.}
+\begin{verbatim}
+OccuFly RGB/video + intrinsics + depth + SSC labels + optional poses
+  -> V-JEPA context features
+  -> context DPT/F2D adapter
+  -> geometry branch:
+       DPT-FiLM depth probabilities OR pose-aware MVS depth probabilities
+  -> FoundationSSC hybrid view transformer
+  -> FoundationSSC 3D decoder
+  -> semantic occupancy logits
+  -> SSC loss + depth loss + SSC/depth diagnostics
+\end{verbatim}
+
+\paragraph{Experiment-family tree.}
+\begin{verbatim}
+experiments_related
+|-- scripts
+|   |-- MDE: linear, DINOv3 linear, DPT, DPT-FiLM, SFP, baselines
+|   |-- V-JEPA2.1 RGB/video finetuning wrappers
+|   `-- diagnostics and visualizations
+|-- vjepa21video_scripts
+|   |-- ST-LP video depth
+|   `-- DTA + DPT-FiLM video depth
+|-- scripts_ssc
+|   |-- vjepafoundationssc scaffold
+|   |-- FoundationSSC hybrid variants
+|   |-- pose-MVS + FiLM-consistent FoundationSSC hybrid
+|   `-- cgformer/aero_jepa_ssc_project Table 3 ablations
+|-- scripts_segmentation
+|   `-- VOC12/OccuFly linear sweep wrappers and label map
+`-- tests
+    `-- mask-aware depth resize, SSC metrics, Aero-JEPA components
+\end{verbatim}
+
+\subsection{What the implementation can support in a paper}
+
+\begin{itemize}
+  \item \term{Methods section support}.  The code supports a methods description covering frozen V-JEPA/V-JEPA2.1 depth probing, DINOv3/DPT decoding, metadata FiLM, video temporal attention, pose-aware MVS depth probabilities, and FoundationSSC hybrid view transformation.  The supporting code is cited in Sections~\ref{sec:dataflow}--\ref{sec:models}.
+  \item \term{Ablation section support}.  The code supports ablations for linear vs DPT depth heads, multi-layer vs SFP features, FiLM/altitude conditioning, RGB/video V-JEPA adaptation, repeated vs real vs shuffled temporal context, DPT-depth vs pose-MVS SSC geometry, RGB-current vs video-DTA depth features, and CGFormer M1--M6 Table 3 mechanisms.  The supporting entry points are listed in Section~\ref{sec:variants}.
+  \item \term{Limitations section support}.  The implementation evidence supports limitations around external dependency on V-JEPA2/DINOv3/FoundationSSC/CGFormer trees, hard-coded local paths, lack of included outputs for result verification, coordinate/grid-shape sensitivity, pose availability for MVS, and explicit split-protocol differences.  These are factual code-level constraints listed in Section~\ref{sec:risks}.
+\end{itemize}
+
+\section{Appendix: concise source checklist}
+
+\begin{itemize}
+  \item MDE core: \path{03_train_vjepa_linear_depth.py}; \path{06_vjepa21_dinov3_linearprobe_occufly.py}; \path{07_vjepa21_dinov3_DPT_multilayer_decoder_occufly.py}; \path{vjepa21_dinov3_depth_adapter.py}.
+  \item MDE FiLM/SFP/altitude: \path{scripts/dpt_decoder/train_vjepa21_vitG_dpt_film_occufly.py}; \path{train_vjepa21_vitG_dpt_altitude_feature_occufly.py}; \path{train_vjepa21_vitG_final_sfp_dpt_film_occufly.py}.
+  \item V-JEPA adaptation: \path{08_vjepa21_finetune_occufly.py}; \path{11_vjepa21_finetune_occufly_video.py}; fine-tuned depth wrappers.
+  \item Video depth: \path{vjepa21video_scripts/src/vjepa21video_depth}; \path{vjepa21video_dptfilm_attention/src}.
+  \item SSC hybrid: \path{scripts_ssc/vjepa21video_posemvs_film_consistent_foundationssc_hybrid/vjepafoundationssc}.
+  \item SSC data/labels/loss/metrics: \path{occufly_ssc_data.py}; \path{occufly_labels.py}; \path{losses_ssc.py}; \path{metrics_ssc.py} in the same hybrid directory.
+  \item FoundationSSC adapters: \path{foundation_ssc/real_adapters.py}.
+  \item Pose MVS: \path{pose_mvs_geometry.py}.
+  \item CGFormer/Aero-JEPA: \path{scripts_ssc/cgformer/aero_jepa_ssc_project/src/aero_jepa_ssc}; configs under \path{configs/occufly}; launch/table scripts under \path{tools}.
+  \item Segmentation: \path{scripts_segmentation/dataset_download/download_voc12.sh}; \path{scripts_segmentation/linear_pipeline/run_vjepa21_occufly_linear_sweep.sh}; \path{run_vjepa21_voc12_linear_sweep.sh}; \path{occufly_21class_label_map.json}.
+  \item Tests: \path{experiments_related/tests}; \path{scripts_ssc/cgformer/aero_jepa_ssc_project/tests}.
+\end{itemize}
+
+\begin{thebibliography}{99}
+\bibitem{vjepa2024}
+Adrien Bardes, Quentin Garrido, Jean Ponce, Xinlei Chen, Michael Rabbat, Yann LeCun, Mahmoud Assran, and Nicolas Ballas.
+\newblock \emph{Revisiting Feature Prediction for Learning Visual Representations from Video}.
+\newblock arXiv:2404.08471, 2024. \url{https://arxiv.org/abs/2404.08471}.
+
+\bibitem{vjepa22025}
+Mido Assran et al.
+\newblock \emph{V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning}.
+\newblock arXiv:2506.09985, 2025. \url{https://arxiv.org/abs/2506.09985}.
+
+\bibitem{vjepa2github}
+Meta AI Research.
+\newblock \emph{facebookresearch/vjepa2: V-JEPA 2 reference implementation}.
+\newblock GitHub repository. \url{https://github.com/facebookresearch/vjepa2}.
+
+\bibitem{dinov32025}
+Meta AI Research.
+\newblock \emph{DINOv3}.
+\newblock arXiv:2508.10104, 2025. \url{https://arxiv.org/abs/2508.10104}.
+
+\bibitem{dinov3github}
+Meta AI Research.
+\newblock \emph{facebookresearch/dinov3: reference PyTorch implementation and models}.
+\newblock GitHub repository. \url{https://github.com/facebookresearch/dinov3}.
+
+\bibitem{dpt2021}
+Rene Ranftl, Alexey Bochkovskiy, and Vladlen Koltun.
+\newblock \emph{Vision Transformers for Dense Prediction}.
+\newblock ICCV 2021; arXiv:2103.13413. \url{https://arxiv.org/abs/2103.13413}.
+
+\bibitem{occufly2026}
+Markus Gross, Sai B. Matha, Aya Fahmy, Rui Song, Daniel Cremers, and Henri Meess.
+\newblock \emph{OccuFly: A 3D Vision Benchmark for Semantic Scene Completion from the Aerial Perspective}.
+\newblock CVPR 2026; arXiv:2512.20770. \url{https://arxiv.org/abs/2512.20770}; project page \url{https://markus-42.github.io/publications/2026/occufly/}.
+
+\bibitem{cgformer2024}
+Zhu Yu, Runmin Zhang, Jiacheng Ying, Junchen Yu, Xiaohai Hu, Lun Luo, Si-Yuan Cao, and Hui-Liang Shen.
+\newblock \emph{Context and Geometry Aware Voxel Transformer for Semantic Scene Completion}.
+\newblock arXiv:2405.13675, 2024. \url{https://arxiv.org/abs/2405.13675}.
+
+\bibitem{foundationssc2025}
+Shiyuan Chen, Wei Sui, Bohao Zhang, Zeyd Boukhers, John See, and Cong Yang.
+\newblock \emph{Unleashing Semantic and Geometric Priors for 3D Scene Completion}.
+\newblock arXiv:2508.13601, 2025. \url{https://arxiv.org/abs/2508.13601}.
+
+\bibitem{foundationsscgithub}
+D-Robotics-AI-Lab.
+\newblock \emph{FoundationSSC reference implementation}.
+\newblock GitHub repository. \url{https://github.com/D-Robotics-AI-Lab/FoundationSSC}.
+
+\bibitem{voxformer2023}
+Yiming Li, Zhiding Yu, Christopher Choy, Chaowei Xiao, Jose M. Alvarez, Sanja Fidler, Chen Feng, and Anima Anandkumar.
+\newblock \emph{VoxFormer: Sparse Voxel Transformer for Camera-Based 3D Semantic Scene Completion}.
+\newblock CVPR 2023; arXiv:2302.12251. \url{https://arxiv.org/abs/2302.12251}.
+\end{thebibliography}
+
+\end{document}
