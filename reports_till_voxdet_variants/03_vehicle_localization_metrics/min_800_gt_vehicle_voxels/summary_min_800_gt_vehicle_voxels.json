@@ -1,0 +1,59 @@
+{
+  "filter": "official test frames with total GT vehicle voxels >= 800",
+  "filter_is_frame_level": true,
+  "retained_frames": 1776,
+  "original_test_positive_frames": 3224,
+  "retained_fraction": 0.5508684863523573,
+  "retained_gt_vehicle_voxels": 5877197,
+  "semantic_metrics": {
+    "sc_iou": 0.1948337205076943,
+    "ssc_miou": 0.0572594956242723,
+    "vehicle_iou": 0.03740668919062585,
+    "class_iou": {
+      "empty": 0.669713151323064,
+      "road": 0.025522240210230925,
+      "walkway": 0.0042877660951324776,
+      "dirt": 0.0003427157150569803,
+      "gravel": 0.0074049332422752205,
+      "rock": 7.460307771606069e-06,
+      "grass": 0.014077567556717813,
+      "vegetation": 0.021272793160816355,
+      "tree": 0.006237562650102904,
+      "ground_obstacle": 0.005343501834762962,
+      "person": 0.0,
+      "bicycle": 0.0,
+      "vehicle": 0.03740668919062585,
+      "water": 0.0,
+      "building": 0.34248620615436665,
+      "roof": 0.017234214854256746,
+      "cable": 0.0,
+      "cable_tower": null,
+      "parking_lot": 0.04832367719522371,
+      "construction": 0.0027688169131518895,
+      "crane": 0.0,
+      "truck": 2.0111706162226768e-05
+    }
+  },
+  "instance_metrics": {
+    "0.25": {
+      "tp": 246,
+      "fp": 16565,
+      "fn": 26677,
+      "precision": 0.014633275831300934,
+      "recall": 0.009137168963339895,
+      "f1": 0.011249828508711757,
+      "matched_instances": 246,
+      "centroid_mae_m": 1.407166592730748
+    },
+    "0.5": {
+      "tp": 1,
+      "fp": 16810,
+      "fn": 26922,
+      "precision": 5.9484861102849326e-05,
+      "recall": 3.714296326560933e-05,
+      "f1": 4.573101019801528e-05,
+      "matched_instances": 1,
+      "centroid_mae_m": 0.4659683041245347
+    }
+  }
+}
