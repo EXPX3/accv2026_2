@@ -16,7 +16,7 @@ wacv27-support    fresh WACV27 starting branch
 
 The `wacv27-support` branch contains a portable archive of the corrected
 VoxDet variant evaluations through Variant 5 v2. It includes SC/SSC and
-classwise metrics, training histories, vehicle-localization results, GT versus
+classwise metrics—including the verified Variant 5 v2 result (45.7703% SC IoU, 4.6203% primary SSC mIoU, and 3.9603% fixed-21 SSC mIoU)—training histories, vehicle-localization results, GT versus
 SSC instance comparisons, Hungarian matching at several 3D-IoU thresholds,
 and semantic 3D voxel-grid views. All representative vehicle visualizations apply the frame-level minimum of 800 ground-truth vehicle voxels; groups without a qualifying frame are explicitly marked and never replaced by a below-threshold example.
 

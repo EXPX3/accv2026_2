@@ -8,5 +8,11 @@
   "test_manifest_sha256": "9f87fcd0c4f4f236e4b7d9b56e7624965bbb0f595d36fcc83870e77add782cb6",
   "test_samples": 3842,
   "selected_metric": "ssc_miou_gt_present",
-  "source_results_root": "/datatank/giridhar.vb/data/checkpoints/corrected_evaluation_v1"
+  "source_results_root": "/datatank/giridhar.vb/data/checkpoints/corrected_evaluation_v1",
+  "variant5_v2_final_integration": {
+    "checkpoint_sha256": "b99edc397d52d9726fd11ccb08094d989c75f99fcbd5d4bbc1ca431fd7e6063c",
+    "checkpoint_epoch": 2,
+    "source_metrics_json": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/vehicle_localization/evaluations/variant5v2_b99edc397d52_test/ssc_metrics/metrics.json",
+    "baseline_bundle": "/datatank/giridhar.vb/repos/ws_jepa_occufly_test/experiments_wacv27/ssc/code/voxDet/corrected_evaluation_v1/report_bundle_20260828"
+  }
 }

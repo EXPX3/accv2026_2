@@ -28,7 +28,7 @@ the local server is more reliable for large self-contained visualization files.
 
 ## Structure
 
-- `01_corrected_cross_variant_evaluation`: corrected SC/SSC metrics, classwise
+- `01_corrected_cross_variant_evaluation`: corrected SC/SSC metrics including the verified rank-1 Variant 5 v2 result, classwise
   reports, rankings, checkpoint provenance, and static HTML browsers.
 - `02_training_and_test_metrics`: training histories and available final test
   metrics grouped by variant.

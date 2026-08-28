@@ -10,13 +10,18 @@ All corrected rows use the same ordered 3,842-sample test manifest with SHA-256 
 
 | Rank | Model | SSC mIoU GT-present (%) | SC IoU (%) |
 |---:|---|---:|---:|
-| 1 | FSSC-VoxDet V1 — FSSC RGB-context/DPT + FiLM-DPT depth + spatial encoder + VoxDet TDP/VoxNT | 3.8292 | 39.4726 |
-| 2 | FSSC-VoxDet V5 — corrected VoxNT/evaluation | 3.8155 | 39.5436 |
-| 3 | FSSC RGB context DPT, depth FiLM-DPT | 3.4849 | 34.4203 |
-| 4 | FSSC-VoxDet V4 — FiLM-DPT depth + V-JEPA 2.1 DPT context, 128-channel volume | 3.4747 | 38.8690 |
-| 5 | FSSC-VoxDet V3 — FiLM-DPT depth + ResNet context, 128-channel volume | 2.8502 | 38.8508 |
-| 6 | Monocular VoxDet V2 — reference losses and auxiliary head | 1.8729 | 27.0889 |
-| 7 | CGFormer DAV2 prior | 1.3736 | 9.9257 |
+| 1 | FSSC-VoxDet V5 v2 — long-tail/depth-gradient/full-resolution VoxNT/cosine | 4.6203 | 45.7703 |
+| 2 | FSSC-VoxDet V1 — FSSC RGB-context/DPT + FiLM-DPT depth + spatial encoder + VoxDet TDP/VoxNT | 3.8292 | 39.4726 |
+| 3 | FSSC-VoxDet V5 — corrected VoxNT/evaluation | 3.8155 | 39.5436 |
+| 4 | FSSC RGB context DPT, depth FiLM-DPT | 3.4849 | 34.4203 |
+| 5 | FSSC-VoxDet V4 — FiLM-DPT depth + V-JEPA 2.1 DPT context, 128-channel volume | 3.4747 | 38.8690 |
+| 6 | FSSC-VoxDet V3 — FiLM-DPT depth + ResNet context, 128-channel volume | 2.8502 | 38.8508 |
+| 7 | Monocular VoxDet V2 — reference losses and auxiliary head | 1.8729 | 27.0889 |
+| 8 | CGFormer DAV2 prior | 1.3736 | 9.9257 |
+
+## Verified Variant 5 v2 result
+
+The completed Variant 5 v2 epoch-2 checkpoint was independently matched by SHA-256 (`b99edc397d52…e6063c`) to the archived 3,842-frame test evaluation. It achieves **45.7703% SC IoU**, **4.6203% primary SSC mIoU**, and **3.9603% fixed-21 SSC mIoU**, ranking first in all three canonical tables. No inference was repeated because the archived result is for the exact current checkpoint.
 
 ## Unavailable or deferred models
 
@@ -24,7 +29,6 @@ All corrected rows use the same ordered 3,842-sample test manifest with SHA-256 
 - **FSSC RGB context FiLM-DPT, depth FiLM-DPT:** checkpoint unavailable. Older reported values are retained as historical evidence and are not presented as canonical re-evaluations.
 - **FSSC video context DTA-DPT, depth DTA-MVS:** checkpoint unavailable. Older reported values are retained as historical evidence and are not presented as canonical re-evaluations.
 - **FSSC video context DTA-DPT, depth DTA-FiLM-MVS:** checkpoint unavailable. Older reported values are retained as historical evidence and are not presented as canonical re-evaluations.
-- **FSSC-VoxDet V5 v2 — long-tail/depth-gradient/full-resolution VoxNT/cosine:** training active on DGX-4; deliberately excluded from this audit snapshot. Older reported values are retained as historical evidence and are not presented as canonical re-evaluations.
 
 ## Interpretation
 
