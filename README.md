@@ -12,6 +12,29 @@ accv26-support    preserved ACCV26 paper state
 wacv27-support    fresh WACV27 starting branch
 ```
 
+## VoxDet reports and browser visualizations
+
+The `wacv27-support` branch contains a portable archive of the corrected
+VoxDet variant evaluations through Variant 5 v2. It includes SC/SSC and
+classwise metrics, training histories, vehicle-localization results, GT versus
+SSC instance comparisons, Hungarian matching at several 3D-IoU thresholds,
+and semantic 3D voxel-grid views.
+
+**[Open the VoxDet browser-visualization index](reports_till_voxdet_variants/index.html)**
+
+For reliable viewing after pulling the branch, start the included local server
+from the repository root:
+
+```bash
+git switch wacv27-support
+git pull
+python3 reports_till_voxdet_variants/serve_reports.py --open
+```
+
+Then open [http://127.0.0.1:8770/](http://127.0.0.1:8770/) in the local-host
+browser. The server uses only the Python standard library and binds to the
+local machine by default.
+
 ## Structure
 
 ```text
