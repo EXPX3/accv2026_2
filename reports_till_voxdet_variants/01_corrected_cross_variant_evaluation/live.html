@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Canonical OccuFly SSC Metrics Browser</title>
+  <style>
+    :root { --bg:#09111f; --panel:#111d30; --panel2:#17263d; --line:#2a3d59;
+      --text:#e9f0fa; --muted:#9db0c8; --cyan:#42d4d0; --blue:#68a7ff;
+      --amber:#f4bf61; --green:#62d696; --red:#ff7d83; }
+    * { box-sizing:border-box }
+    body { margin:0; background:radial-gradient(circle at 90% 0,#173257 0,transparent 30%),var(--bg);
+      color:var(--text); font:14px/1.45 Inter,ui-sans-serif,system-ui,sans-serif; }
+    header { padding:34px clamp(18px,4vw,64px) 18px; border-bottom:1px solid var(--line) }
+    h1 { margin:0 0 7px; font-size:clamp(25px,4vw,43px); letter-spacing:-.04em }
+    h2 { margin:0 0 16px; font-size:20px }
+    p { color:var(--muted); margin:5px 0 }
+    main { padding:22px clamp(14px,3vw,48px) 60px; max-width:1800px; margin:auto }
+    .tabs { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:18px; position:sticky; top:0;
+      z-index:5; padding:10px 0; background:color-mix(in srgb,var(--bg) 91%,transparent); backdrop-filter:blur(10px) }
+    button,.select { border:1px solid var(--line); background:var(--panel); color:var(--text);
+      border-radius:8px; padding:9px 12px; cursor:pointer }
+    button.active { background:var(--cyan); color:#071419; border-color:var(--cyan); font-weight:700 }
+    section { display:none } section.active { display:block }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px }
+    .card { background:linear-gradient(145deg,var(--panel2),var(--panel)); border:1px solid var(--line);
+      border-radius:12px; padding:16px; min-width:0 }
+    .metric { font-size:28px; font-weight:750; letter-spacing:-.035em }
+    .muted,.note { color:var(--muted) } .note { font-size:12px }
+    .bar { height:8px; background:#263750; border-radius:5px; overflow:hidden; margin-top:9px }
+    .bar i { display:block; height:100%; background:linear-gradient(90deg,var(--blue),var(--cyan)); border-radius:5px }
+    .controls { display:flex; flex-wrap:wrap; gap:9px; margin:0 0 13px }
+    select,input { min-width:210px; border:1px solid var(--line); background:var(--panel); color:var(--text);
+      border-radius:8px; padding:9px 11px }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:11px; max-height:70vh }
+    table { width:100%; border-collapse:collapse; background:var(--panel); font-variant-numeric:tabular-nums }
+    th,td { padding:9px 11px; border-bottom:1px solid #21334c; text-align:right; white-space:nowrap }
+    th { position:sticky; top:0; background:#182943; z-index:2; color:#bed0e5; cursor:pointer }
+    th:first-child,td:first-child,th:nth-child(2),td:nth-child(2) { text-align:left }
+    tbody tr:hover { background:#182943 }
+    .missing { color:var(--amber) } .positive { color:var(--green) } .negative { color:var(--red) }
+    .legend { display:flex; gap:15px; flex-wrap:wrap; margin:10px 0 18px }
+    a { color:var(--cyan) } code { color:#c9dcf5 }
+    @media(max-width:700px) { th,td { padding:7px 8px } .hide-mobile { display:none } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Canonical OccuFly SSC Metrics Browser</h1>
+  <p>Canonical 22-class test evaluation · 3,842 samples · empty = class 0 · ignore = 255</p>
+  <p><a href="REEVALUATION_REPORT.md">Research report</a> · <a href="../METRIC_DISCREPANCY_AUDIT.md">Metric discrepancy audit</a> · generated entirely from committed canonical artifacts</p>
+</header>
+<main>
+  <nav class="tabs" aria-label="Metric views">
+    <button class="active" data-tab="overview">Overview</button>
+    <button data-tab="classwise">Classwise explorer</button>
+    <button data-tab="heatmap">IoU matrix</button>
+    <button data-tab="history">Historical deltas</button>
+    <button data-tab="manifest">Checkpoints</button>
+  </nav>
+  <section id="overview" class="active"><h2>Canonical overall metrics</h2><div id="cards" class="grid"></div>
+    <h2 style="margin-top:24px">Complete overall table</h2><div id="overall-table" class="table-wrap"></div></section>
+  <section id="classwise"><h2>Per-class analytical metrics</h2>
+    <div class="controls"><select id="model-filter"></select><select id="class-filter"></select>
+      <select id="metric-filter"><option value="iou_percent">IoU (%)</option><option value="precision_fraction">Precision</option><option value="recall_fraction">Recall</option><option value="f1_dice_fraction">F1 / Dice</option><option value="gt_support">GT support</option><option value="prediction_support">Prediction support</option></select></div>
+    <div id="class-cards" class="grid"></div><h2 style="margin-top:24px">TP/FP/FN and class metrics</h2><div id="class-table" class="table-wrap"></div></section>
+  <section id="heatmap"><h2>Class IoU across models (%)</h2><p>Blank cells are mathematically undefined; zeros are genuine measured zeros.</p><div id="heatmap-table" class="table-wrap"></div></section>
+  <section id="history"><h2>Historical versus canonical results</h2><p>Missing historical cells remain blank and are never silently zero-filled.</p>
+    <div class="controls"><select id="history-model"></select><select id="history-scope"><option value="all">All metrics</option><option value="overall">Overall only</option><option value="class">Classwise only</option></select></div><div id="history-table" class="table-wrap"></div></section>
+  <section id="manifest"><h2>Checkpoint provenance and availability</h2><div id="manifest-table" class="table-wrap"></div></section>
+</main>
+<script type="application/json" id="payload"></script>
+<script type="module">
+const D=await (await fetch('/api/data',{cache:'no-store'})).json();
+const canonical=D.overall.filter(x=>x.status==='canonical test re-evaluation');
+const fmt=(v,n=4)=>v===''||v==null?'—':Number(v).toFixed(n);
+const pct=v=>fmt(Number(v)*100,4);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function table(rows,cols){
+  const head=cols.map(c=>`<th data-key="${c[0]}">${esc(c[1])}</th>`).join('');
+  const body=rows.map(r=>'<tr>'+cols.map(c=>`<td>${c[2]?c[2](r[c[0]],r):esc(r[c[0]]||'—')}</td>`).join('')+'</tr>').join('');
+  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab],section').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.tab).classList.add('active')});
+const ranked=[...canonical].sort((a,b)=>b.ssc_miou_gt_present_fraction-a.ssc_miou_gt_present_fraction);
+document.getElementById('cards').innerHTML=ranked.map((r,i)=>`<article class="card"><div class="note">#${i+1} PRIMARY SSC RANK</div><h3>${esc(r.model)}</h3><div class="metric">${fmt(r.ssc_miou_gt_present_percent)}%</div><p>SSC mIoU · GT-present</p><div class="bar"><i style="width:${Math.min(100,Number(r.ssc_miou_gt_present_percent)*8)}%"></i></div><p>SC IoU <b>${fmt(r.sc_iou_percent)}%</b> · Accuracy <b>${pct(r.overall_voxel_accuracy_fraction)}%</b></p></article>`).join('');
+const overallCols=[['model','Model'],['sc_iou_percent','SC IoU (%)',fmt],['ssc_miou_gt_present_percent','SSC mIoU GT-present (%)',fmt],['ssc_miou_all_21_zero_filled_percent','SSC mIoU fixed-21 (%)',fmt],['ssc_miou_legacy_union_present_fraction','Legacy union-present (%)',pct],['sc_precision_fraction','SC precision (%)',pct],['sc_recall_fraction','SC recall (%)',pct],['overall_voxel_accuracy_fraction','Voxel accuracy (%)',pct],['ssc_fw_iou_nonempty_fraction','FW IoU semantic (%)',pct],['macro_semantic_precision_gt_present_fraction','Macro precision (%)',pct],['macro_semantic_recall_gt_present_fraction','Macro recall (%)',pct],['macro_semantic_f1_gt_present_fraction','Macro F1 (%)',pct],['evaluated_samples','Samples']];
+document.getElementById('overall-table').innerHTML=table(D.overall,overallCols);
+const models=[...new Set(D.classes.map(x=>x.model))], classes=[...new Set(D.classes.map(x=>x.class_name))];
+function fillSelect(el,values,label){el.innerHTML=`<option value="all">${label}</option>`+values.map(x=>`<option>${esc(x)}</option>`).join('')}
+fillSelect(document.getElementById('model-filter'),models,'All models'); fillSelect(document.getElementById('class-filter'),classes,'All classes');
+const classCols=[['model','Model'],['train_id','ID'],['class_name','Class'],['gt_support','GT support'],['prediction_support','Pred support'],['true_positive','TP'],['false_positive','FP'],['false_negative','FN'],['iou_percent','IoU (%)',fmt],['precision_fraction','Precision (%)',pct],['recall_fraction','Recall (%)',pct],['f1_dice_fraction','F1 (%)',pct]];
+function renderClass(){const m=document.getElementById('model-filter').value,c=document.getElementById('class-filter').value,k=document.getElementById('metric-filter').value;let rows=D.classes.filter(x=>(m==='all'||x.model===m)&&(c==='all'||x.class_name===c));document.getElementById('class-table').innerHTML=table(rows,classCols);let top=[...rows].filter(x=>x[k]!=='').sort((a,b)=>Number(b[k])-Number(a[k])).slice(0,24);document.getElementById('class-cards').innerHTML=top.map(x=>`<div class="card"><div class="note">${esc(x.model)}</div><h3>${esc(x.class_name)}</h3><div class="metric">${k.includes('fraction')?pct(x[k]):fmt(x[k])}</div><p>${esc(document.getElementById('metric-filter').selectedOptions[0].text)}</p></div>`).join('')}
+['model-filter','class-filter','metric-filter'].forEach(id=>document.getElementById(id).onchange=renderClass);renderClass();
+const byKey=Object.fromEntries(D.classes.map(x=>[x.model+'|'+x.class_name,x]));
+document.getElementById('heatmap-table').innerHTML='<table><thead><tr><th>Model</th>'+classes.map(c=>`<th>${esc(c)}</th>`).join('')+'</tr></thead><tbody>'+models.map(m=>'<tr><td>'+esc(m)+'</td>'+classes.map(c=>{let v=byKey[m+'|'+c]?.iou_percent;if(v===''||v==null)return '<td>—</td>';let hue=Math.min(120,Number(v)*5);return `<td style="background:hsla(${hue},65%,38%,.62)">${fmt(v,2)}</td>`}).join('')+'</tr>').join('')+'</tbody></table>';
+fillSelect(document.getElementById('history-model'),[...new Set(D.historical.map(x=>x.model))],'All models');
+const histCols=[['model','Model'],['scope','Scope'],['metric','Metric'],['class','Class'],['historical_fraction','Historical',v=>v===''?'—':fmt(v,6)],['corrected_fraction','Corrected',v=>v===''?'—':fmt(v,6)],['absolute_change_fraction','Absolute Δ',v=>v===''?'—':`<span class="${Number(v)>=0?'positive':'negative'}">${fmt(v,6)}</span>`],['note','Note']];
+function renderHistory(){let m=document.getElementById('history-model').value,s=document.getElementById('history-scope').value;document.getElementById('history-table').innerHTML=table(D.historical.filter(x=>(m==='all'||x.model===m)&&(s==='all'||x.scope===s)),histCols)}
+document.getElementById('history-model').onchange=renderHistory;document.getElementById('history-scope').onchange=renderHistory;renderHistory();
+const manifestCols=[['canonical_model_name','Model'],['checkpoint_epoch','Epoch'],['checkpoint_sha256','SHA-256',v=>v?`<code title="${esc(v)}">${esc(v.slice(0,14))}…</code>`:'—'],['channel_mapping','Channel mapping'],['validation_selection_metric','Selection metric'],['checkpoint_path','Checkpoint'],['dependencies','Dependencies'],['availability_status','Status',v=>`<span class="${v.startsWith('available')?'positive':'missing'}">${esc(v)}</span>`]];
+document.getElementById('manifest-table').innerHTML=table(D.manifest,manifestCols);
+</script>
+</body></html>

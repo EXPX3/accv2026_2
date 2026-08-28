@@ -1,0 +1,7 @@
+sample_uid,scene_id,height_category,gt_vehicle_instances
+scene_08_30_000011,scene_08,30,17
+scene_08_40_000006,scene_08,40,16
+scene_08_50_000005,scene_08,50,17
+scene_09_30_000015,scene_09,30,8
+scene_09_40_000010,scene_09,40,7
+scene_09_50_000003,scene_09,50,7

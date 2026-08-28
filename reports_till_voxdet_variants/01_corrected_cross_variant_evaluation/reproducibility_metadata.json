@@ -1,0 +1,12 @@
+{
+  "generated_by": "/datatank/giridhar.vb/repos/ws_jepa_occufly_test/experiments_wacv27/ssc/code/voxDet/corrected_evaluation_v1/evaluate_all_checkpoints.py",
+  "repository": "/datatank/giridhar.vb/repos/ws_jepa_occufly_test",
+  "repository_commit": "4bc18cd868839c2bb37b65863efce62467febbd5",
+  "repository_branch": "voxDet_NeurIPS_25",
+  "python": "3.11.15 | packaged by conda-forge | (main, Jun 11 2026, 03:34:02) [GCC 14.3.0]",
+  "platform": "Linux-6.8.0-110-generic-x86_64-with-glibc2.39",
+  "test_manifest_sha256": "9f87fcd0c4f4f236e4b7d9b56e7624965bbb0f595d36fcc83870e77add782cb6",
+  "test_samples": 3842,
+  "selected_metric": "ssc_miou_gt_present",
+  "source_results_root": "/datatank/giridhar.vb/data/checkpoints/corrected_evaluation_v1"
+}

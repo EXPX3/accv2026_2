@@ -1,0 +1,19 @@
+{
+  "val_depth_rmse": 2.232989637254152,
+  "val_depth_abs_rel": 0.05034136631011811,
+  "val_valid_projection_fraction": 1.0,
+  "val_valid_depth_probability_mass_fraction": 1.0,
+  "val_projected_voxel_fraction": 0.15161197143049943,
+  "val_proposal_fraction": 0.008425441526976099,
+  "val_projected_depth_pixel_fraction": 1.0,
+  "val_voxel_projection_valid_fraction": 1.0,
+  "val_sc_iou": 0.32937759160995483,
+  "val_occ_iou": 0.32937759160995483,
+  "val_ssc_miou": 0.0522770881652832,
+  "val_miou_occupied_classes": 0.0522770881652832,
+  "val_ssc_miou_num_present_classes": 21,
+  "val_miou_with_empty": 0.09305047988891602,
+  "val_miou_all_classes": 0.09305047988891602,
+  "val_valid_voxel_fraction": 0.4034718871116638,
+  "val_occupied_voxel_fraction": 0.016027210280299187
+}

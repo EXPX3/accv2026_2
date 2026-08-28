@@ -1,0 +1,16 @@
+group,count
+height:30,4286
+height:40,4883
+height:50,3903
+scene:scene_01,116
+scene:scene_02,786
+scene:scene_03,2630
+scene:scene_04,2892
+scene:scene_05,1512
+scene:scene_06,915
+scene:scene_07,997
+scene:scene_08,879
+scene:scene_09,2345
+split:test,3224
+split:train,7936
+split:val,1912

@@ -1,0 +1,230 @@
+{
+  "contract": {
+    "axis_order": "WHD_camera_right_down_forward",
+    "shape_whd": [
+      192,
+      128,
+      128
+    ],
+    "directions": [
+      "w+",
+      "w-",
+      "h+",
+      "h-",
+      "d+",
+      "d-"
+    ],
+    "valid_mask": "np.unpackbits(valid_whd, count=prod(shape_whd)).reshape(shape_whd)"
+  },
+  "splits": {
+    "train": {
+      "source_samples": 14804,
+      "matching_npz": 14804,
+      "checked": [
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_01/30/000000.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 706560,
+          "ignored_voxels": 2439168,
+          "valid_fraction": 0.224609375,
+          "max_run_length": 92,
+          "source_sha256": "925f8e0b3b035e74613c5b714bb2df137c760cde7b8727600223e01fbdcb6f2a"
+        },
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_04/30/001526.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 688128,
+          "ignored_voxels": 2457600,
+          "valid_fraction": 0.21875,
+          "max_run_length": 84,
+          "source_sha256": "c16c5653aedb01f30673cad8f7474eea99bc1924cc92e173cd97e9880e7c4528"
+        },
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_05/50/001005.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 1863680,
+          "ignored_voxels": 1282048,
+          "valid_fraction": 0.5924479166666666,
+          "max_run_length": 140,
+          "source_sha256": "f096a2ea0d49bd4fe21b7038aee25de180c94c09314d1e0c2a436011a5ca8c58"
+        }
+      ]
+    },
+    "val": {
+      "source_samples": 1965,
+      "matching_npz": 1965,
+      "checked": [
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_06/30/000000.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 706560,
+          "ignored_voxels": 2439168,
+          "valid_fraction": 0.224609375,
+          "max_run_length": 92,
+          "source_sha256": "218a92e742576205939b6d363fa675b066261c3edb16bc0d4b66c1bdf96c292c"
+        },
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_07/30/000023.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 706560,
+          "ignored_voxels": 2439168,
+          "valid_fraction": 0.224609375,
+          "max_run_length": 92,
+          "source_sha256": "d8add7849feb6e2a1fe0df6bf763b100303c4ed06bce703b3859b44c3bba1a5c"
+        },
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_07/50/000278.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 1894400,
+          "ignored_voxels": 1251328,
+          "valid_fraction": 0.6022135416666666,
+          "max_run_length": 148,
+          "source_sha256": "c6583c9724fe59cabc49e9ecdd4a8ab7e9f3600dafa4e67730eb1b36ae130af6"
+        }
+      ]
+    },
+    "test": {
+      "source_samples": 3842,
+      "matching_npz": 3842,
+      "checked": [
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_08/30/000000.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 706560,
+          "ignored_voxels": 2439168,
+          "valid_fraction": 0.224609375,
+          "max_run_length": 92,
+          "source_sha256": "9ac103888f2d41bf9ab1bf376157eb4ee515ece52a821ec679236976a433c8c8"
+        },
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_09/40/000799.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 1204224,
+          "ignored_voxels": 1941504,
+          "valid_fraction": 0.3828125,
+          "max_run_length": 112,
+          "source_sha256": "2a2dafac949e066b6da27ccaaf1a3f48b306929fc5613fa4449a792c4c23d246"
+        },
+        {
+          "path": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/scene_09/50/001303.npz",
+          "shape_whd": [
+            192,
+            128,
+            128
+          ],
+          "directions": [
+            "w+",
+            "w-",
+            "h+",
+            "h-",
+            "d+",
+            "d-"
+          ],
+          "valid_voxels": 1863680,
+          "ignored_voxels": 1282048,
+          "valid_fraction": 0.5924479166666666,
+          "max_run_length": 140,
+          "source_sha256": "c8f412cb9f2dd6e205ec80f8b64db837318cce0b43725f7de0eefb7cd5dfa26b"
+        }
+      ]
+    }
+  },
+  "voxnt_manifest": "/datatank/giridhar.vb/repos/datasets/OccuFly_Dataset/VoxNT_for_occufly/manifest.json",
+  "voxnt_manifest_sha256": "f3e81be5b6e9e8ad5b691419cd15972b780db9ba5377a071b6af60fa5eccfc31"
+}

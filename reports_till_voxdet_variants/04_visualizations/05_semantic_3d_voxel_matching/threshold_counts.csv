@@ -1,0 +1,17 @@
+case,sample_uid,threshold,tp,fn,fp
+best,scene_08_30_000093,0.1,6,18,17
+best,scene_08_30_000093,0.25,4,20,19
+best,scene_08_30_000093,0.5,0,24,23
+best,scene_08_30_000093,0.75,0,24,23
+median,scene_08_40_000073,0.1,4,21,15
+median,scene_08_40_000073,0.25,1,24,18
+median,scene_08_40_000073,0.5,0,25,19
+median,scene_08_40_000073,0.75,0,25,19
+difficult,scene_08_30_000326,0.1,1,17,12
+difficult,scene_08_30_000326,0.25,1,17,12
+difficult,scene_08_30_000326,0.5,0,18,13
+difficult,scene_08_30_000326,0.75,0,18,13
+strict match / height 50,scene_09_50_000472,0.1,4,13,3
+strict match / height 50,scene_09_50_000472,0.25,3,14,4
+strict match / height 50,scene_09_50_000472,0.5,1,16,6
+strict match / height 50,scene_09_50_000472,0.75,0,17,7

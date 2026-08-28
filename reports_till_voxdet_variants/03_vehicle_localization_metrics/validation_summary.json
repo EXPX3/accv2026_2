@@ -1,0 +1,60 @@
+{
+  "component_size_voxels": {
+    "count": 103888,
+    "max": 2625,
+    "mean": 200.67148275065455,
+    "median": 154.0,
+    "min": 1,
+    "p75": 227.0,
+    "p90": 393.0,
+    "p95": 558.0
+  },
+  "connectivity_frames_with_changed_count": {
+    "18_vs_26": 995,
+    "6_vs_18": 6923,
+    "6_vs_26": 7109
+  },
+  "instances_per_frame": {
+    "max": 43,
+    "mean": 7.947368421052632,
+    "min": 1
+  },
+  "limitations": [
+    "Connected components are semantic pseudo-instances, not genuine instance annotations.",
+    "30/40/50 are dataset altitude categories; above-ground altitude is not asserted.",
+    "The selected subset cannot provide an unbiased full-split false-positive rate."
+  ],
+  "scope": "Conditional vehicle localization on GT-vehicle-positive OccuFly frames.",
+  "selected_counts": {
+    "height:30": 4286,
+    "height:40": 4883,
+    "height:50": 3903,
+    "scene:scene_01": 116,
+    "scene:scene_02": 786,
+    "scene:scene_03": 2630,
+    "scene:scene_04": 2892,
+    "scene:scene_05": 1512,
+    "scene:scene_06": 915,
+    "scene:scene_07": 997,
+    "scene:scene_08": 879,
+    "scene:scene_09": 2345,
+    "split:test": 3224,
+    "split:train": 7936,
+    "split:val": 1912
+  },
+  "selected_frames": 13072,
+  "total_pseudo_instances_6_connectivity": 103888,
+  "total_vehicle_voxels": 20847359,
+  "validation": {
+    "all_links_resolve": true,
+    "all_selected_have_vehicle_train_id_12": true,
+    "annotations_reload": true,
+    "component_masks_reconstruct_vehicle_mask": true,
+    "connectivity_counts_reported": true,
+    "consecutive_deterministic_ids": true,
+    "finite_metric_coordinates_in_range": true,
+    "official_splits_preserved": true,
+    "output_not_source": true,
+    "unique_source_frames": true
+  }
+}
