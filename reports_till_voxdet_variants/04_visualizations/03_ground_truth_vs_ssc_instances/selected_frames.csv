@@ -1,7 +1,7 @@
-sample_uid,scene_id,height_category,gt_vehicle_instances
-scene_08_30_000011,scene_08,30,17
-scene_08_40_000006,scene_08,40,16
-scene_08_50_000005,scene_08,50,17
-scene_09_30_000015,scene_09,30,8
-scene_09_40_000010,scene_09,40,7
-scene_09_50_000003,scene_09,50,7
+sample_uid,split,scene_id,height_category,gt_vehicle_instances,gt_vehicle_voxels
+scene_08_30_000080,test,scene_08,30,29,7968
+scene_08_40_000061,test,scene_08,40,29,7543
+scene_08_50_000047,test,scene_08,50,29,7617
+scene_09_30_000239,test,scene_09,30,19,5039
+scene_09_40_000175,test,scene_09,40,21,5192
+scene_09_50_000132,test,scene_09,50,23,5139
