@@ -1,0 +1,316 @@
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{answered}{RGB}{27,120,55}
+\definecolor{partial}{RGB}{184,108,0}
+\definecolor{missing}{RGB}{176,35,35}
+\newcommand{\answered}{\textcolor{answered}{\textbf{Answered from existing evidence}}}
+\newcommand{\partialstatus}{\textcolor{partial}{\textbf{Partial---claim/correction ready}}}
+\newcommand{\missing}{\textcolor{missing}{\textbf{Missing experiment/evidence}}}
+\newcommand{\reviewer}[1]{\subsection{Reviewer #1}}
+\newenvironment{reviewpoint}[2]
+  {\subsubsection{#1}\noindent\textbf{Status:} #2\par\smallskip}
+  {}
+
+\title{ACCV 2026 Reviews: Rebuttal Answers and Lessons for WACV 2027}
+\author{}
+\date{29 August 2026}
+
+\begin{document}
+\maketitle
+
+\section{Purpose and evidence policy}
+
+This is a working research document, not yet a length-limited rebuttal. It records every
+reviewer question, the answer currently supported by the submitted results, and the work
+needed before reusing a claim in a WACV 2027 manuscript. Numerical claims below come from
+the ACCV branch tables. Items marked \missing{} must not be answered with speculation or
+presented as established conclusions.
+
+The central lesson is that the ACCV submission over-referenced appendix material that was
+not accessible with the main paper. Consequently, important evidence appeared to be
+missing even when files existed in the repository. Every future claim must be supported by
+a visible main-paper table/figure or by a correctly attached and resolvable appendix item.
+
+\section{Short factual summary}
+
+On the standard OccuFly test split, V-JEPA~2.1 FiLM-DPT-RGB obtains RMSE 4.621~m,
+AbsRel 0.129, $\delta_1$ 0.833, and SILog 0.164. DepthAnything2-OccuFly obtains RMSE
+4.844~m, AbsRel 0.134, $\delta_1$ 0.834, and SILog 0.112. Thus the submitted model is
+better on RMSE, MAE, and AbsRel, essentially tied but slightly worse on the delta metrics,
+and substantially worse on SILog. The defensible conclusion is metric-error
+competitiveness, not overall superiority.
+
+For SSC, the best submitted result is 37.68 SC IoU and 3.46 SSC mIoU. The best
+Pose-MVS result is 32.55 SC IoU and 2.36 SSC mIoU, below the simpler RGB-context result.
+These are negative but useful findings; they do not establish a new state of the art.
+
+\section{Reviewer-by-reviewer answers}
+
+\reviewer{LD5V}
+
+\begin{reviewpoint}{LD5V-1: The paper lacks a clear end-to-end architecture/data-flow figure}{\partialstatus}
+\textbf{Answer.} We agree. Figure~1 functions as an experiment map rather than an
+end-to-end architecture diagram, and the remaining figures do not make the connection
+among DTA, FiLM-DPT, Pose-MVS, depth-probability lifting, and SSC fusion sufficiently
+concrete. The intended flow is:
+\begin{align*}
+&\text{RGB/video + calibration + altitude}
+  \rightarrow \text{frozen V-JEPA 2.1}\\
+&\quad\rightarrow \text{DPT/FiLM-DPT, DTA, or posed MVS branch}\\
+&\quad\rightarrow \text{depth probabilities}
+  \rightarrow \text{2D--3D lifting}\\
+&\quad\rightarrow \text{SSC fusion and prediction head}.
+\end{align*}
+The revision should replace the screenshot-like overview with one legible diagram that
+shows tensor/data flow, frozen versus trainable modules, and the mutually exclusive depth
+branches. Each figure must be cited in the main text and checked at final PDF scale.
+\end{reviewpoint}
+
+\begin{reviewpoint}{LD5V-2: Table 3 caption/format is inconsistent and claimed baselines are absent}{\answered}
+\textbf{Answer.} This is an authoring error. The caption claims MapAnythingV1.1,
+Metric3Dv2, Depth Anything~2, and Depth Anything~3, but the body contains only the
+DepthAnything2-OccuFly row. We will either restore all cited baseline rows using the same
+OccuFly protocol or revise the caption to name only the included baseline. Best values
+must be indicated per metric, not only for RMSE, and the discussion must cover all metrics.
+\end{reviewpoint}
+
+\begin{reviewpoint}{LD5V-3: Table 4 has one method and cannot establish interpolation}{\partialstatus}
+\textbf{Answer.} We agree that a single row is not a comparison. The existing number only
+shows that FiLM-DPT-RGB can be evaluated at held-out 40~m after training at 30/50~m; it
+does not isolate FiLM, nor does it establish scene generalization. The submitted prose
+must be weakened from ``supports physically meaningful conditioning'' to ``a preliminary
+altitude-interpolation stress test.'' A valid replacement table requires an otherwise
+identical unconditioned DPT control and preferably metadata ablations (altitude only,
+intrinsics only, altitude+intrinsics).
+\end{reviewpoint}
+
+\begin{reviewpoint}{LD5V-4: Broken appendix references make evidence inaccessible}{\answered}
+\textbf{Answer.} We agree and apologize. The repository contains altitude/scene MDE
+tables and detailed SSC/per-class material, but the submitted package did not expose them
+through valid cross-references. This is not merely cosmetic because the missing items were
+the evidence for several claims. The revision must compile the main paper and appendix in
+one deliverable (or attach the supplement correctly), resolve every reference, and reject
+the build if ``??'' remains in the PDF or log.
+\end{reviewpoint}
+
+\begin{reviewpoint}{LD5V-5: FiLM is not isolated because plain DPT is unexpectedly weak}{\missing}
+\textbf{Answer.} The current results do not isolate the FiLM contribution. A DPT result
+that is worse than the linear probe is a warning of an optimization/configuration failure,
+not a sound control from which to measure a large FiLM gain. Before making a causal FiLM
+claim, we must audit preprocessing, frozen-layer selection, decoder initialization, depth
+loss, learning-rate/weight-decay, output scaling/bins, and checkpoint selection; rerun DPT
+and FiLM-DPT with identical settings and seeds; and add altitude-only and intrinsics-only
+ablations. Until then the defensible statement is that the \emph{combined configured
+FiLM-DPT system} performs best among the tested V-JEPA heads.
+\end{reviewpoint}
+
+\begin{reviewpoint}{LD5V-6: The altitude split is inconsistent and confounded by scene overlap}{\answered}
+\textbf{Answer.} The experiment report identifies train at 30/50~m, validation at 40~m
+scenes 01--04, and test at 40~m scenes 05--08. Therefore ``scenes 1--9'' is incorrect and
+must be corrected to scenes 01--08 with the validation/test partition stated explicitly.
+Because the same scene identities occur at other altitudes in training, the protocol holds
+out altitude but not scene identity. We will not call it scene-generalization evidence. A
+scene-disjoint altitude test is required for that claim.
+\end{reviewpoint}
+
+\begin{reviewpoint}{LD5V-7: Video does not account for camera-motion misalignment}{\missing}
+\textbf{Answer.} Correct. DTA aggregates tubelet tokens without explicitly warping
+features into the target camera frame. UAV ego-motion can therefore turn temporal
+aggregation into spatial mixing. The negative/altitude-dependent video result must be
+presented with this limitation. A controlled follow-up should compare no alignment,
+pose-based feature warping, and (if available) optical-flow alignment using the same video
+decoder and training protocol.
+\end{reviewpoint}
+
+\begin{reviewpoint}{LD5V-8: Pose-MVS is evaluated only through SSC, without direct depth results}{\missing}
+\textbf{Answer.} We agree. Downstream SSC cannot diagnose whether Pose-MVS fails at
+correspondence/depth estimation or during lifting/fusion. We must report direct Pose-MVS
+depth metrics and qualitative depth/error maps on the same split as monocular depth,
+including an oracle-depth lifting upper bound. Until then, Pose-MVS is an exploratory
+negative SSC result, not evidence about MVS depth quality.
+\end{reviewpoint}
+
+\begin{reviewpoint}{LD5V-9: SSC mIoU is low and lacks per-class, oracle, and statistical analysis}{\partialstatus}
+\textbf{Answer.} Per-class and altitude-wise outputs exist in the repository but were made
+inaccessible by the appendix packaging failure. They must be restored and discussed,
+especially class imbalance and the gap between SC IoU and SSC mIoU. Oracle-depth lifting
+and multi-seed uncertainty are not present and must be added. The revised claim should be
+diagnostic: better monocular depth does not automatically translate into stronger semantic
+completion, and alignment between geometry, lifting, and context is a bottleneck.
+\end{reviewpoint}
+
+\reviewer{CWVJ}
+
+\begin{reviewpoint}{CWVJ-1: There is no second frozen backbone}{\missing}
+\textbf{Answer.} We agree that a single-backbone study cannot attribute observed behavior
+specifically to V-JEPA~2.1. The current conclusion must be scoped to ``V-JEPA~2.1 under
+this OccuFly protocol.'' For WACV, at least one alternative frozen encoder---DINOv3 is the
+most directly motivated control raised by the reviewer---must use the same input
+resolution, selected feature levels, decoder capacity, training budget, splits, and seeds.
+If exact parity is impossible, parameter counts and deviations must be reported.
+\end{reviewpoint}
+
+\begin{reviewpoint}{CWVJ-2: Swapping V-JEPA into SSC barely changes performance}{\answered}
+\textbf{Answer.} We accept this as a result rather than claiming a clear SSC gain. In the
+submitted configurations, V-JEPA-derived priors move SSC modestly and inconsistently; the
+architecture/lifting choice dominates. The contribution should therefore be framed as an
+empirical boundary: strong frozen-feature MDE transfer does not by itself guarantee SSC
+transfer.
+\end{reviewpoint}
+
+\begin{reviewpoint}{CWVJ-3: Plain DPT appears broken}{\missing}
+\textbf{Answer.} This is the same validity issue as LD5V-5. We cannot use the present DPT
+row as a clean causal baseline. The corrective experiment is a matched, multi-seed DPT
+versus FiLM-DPT comparison after a training/configuration audit, with learning curves and
+checkpoint-selection rules reported.
+\end{reviewpoint}
+
+\begin{reviewpoint}{CWVJ-4: Broken appendix references and unfinished manuscript}{\answered}
+\textbf{Answer.} We agree. All evidence-bearing appendix items must ship with the paper,
+all labels must resolve, and tables/figures must remain readable in the final PDF. A clean
+compile check is part of the paper-release protocol below.
+\end{reviewpoint}
+
+\begin{reviewpoint}{CWVJ-5: Mixed comparison to DepthAnything2 and confounded interpolation}{\answered}
+\textbf{Answer.} FiLM-DPT-RGB improves RMSE (4.621 vs. 4.844), MAE (3.523 vs. 4.193),
+and AbsRel (0.129 vs. 0.134), while it is marginally worse on $\delta_1$ (0.833 vs.
+0.834), $\delta_2$ (0.971 vs. 0.976), and $\delta_3$ (0.998 vs. 0.999), and markedly
+worse on SILog (0.164 vs. 0.112). This pattern suggests competitive absolute metric
+accuracy but less consistent scale-relative/log-space accuracy. It does not justify saying
+the method ``beats DepthAnything2'' without qualification. The interpolation limitation is
+addressed in LD5V-6.
+\end{reviewpoint}
+
+\begin{reviewpoint}{CWVJ-6: Single runs and potentially seed-sized margins}{\missing}
+\textbf{Answer.} We agree. Key comparisons require at least three controlled seeds,
+reported as mean $\pm$ standard deviation (and preferably paired per-scene differences or
+bootstrap confidence intervals). Claims based on margins comparable to uncertainty must be
+described as ties.
+\end{reviewpoint}
+
+\begin{reviewpoint}{CWVJ-7: UAV efficiency motivation conflicts with an eight-H100 evaluation}{\partialstatus}
+\textbf{Answer.} The paper reports the DGX hardware but no training/inference cost. Camera
+weight and power motivate visual sensing, but do not establish onboard deployability of a
+V-JEPA-Gigantic pipeline. We must remove or narrow any deployment implication and report
+trainable/total parameters, peak training memory, training GPU-hours, inference latency,
+throughput, and memory at the evaluated resolution. If the model is not tested onboard,
+state that explicitly.
+\end{reviewpoint}
+
+\begin{reviewpoint}{CWVJ-8: Missing related work}{\missing}
+\textbf{Answer.} The related-work section must be expanded and the proposed experiments
+positioned against: frozen multi-backbone 3D probing (Probe3D, Lexicon3D), calibrated or
+intrinsics-aware depth (CAM-Convs and Metric3D's canonical-camera formulation), aerial
+depth/geolocalization datasets (WildUAV, UseGeo, MidAir, AerialMetric), and real-flight
+video/multi-elevation benchmarks (RuralScapes, Dronescapes, MESSI). Each citation and
+dataset property must be verified from the primary paper/project before inclusion; no
+unverified bibliographic entry should be added from memory.
+\end{reviewpoint}
+
+\begin{reviewpoint}{CWVJ-9: Contradictory SSC contribution wording}{\answered}
+\textbf{Answer.} The method text says the goal is not a completely new SSC architecture,
+while a contribution bullet can be read as claiming one. The consistent claim is that we
+evaluate V-JEPA-derived geometry/context variants within CGFormer/FoundationSSC-style
+pipelines, including an exploratory Pose-MVS branch. We will remove the new-architecture
+claim unless novelty is clearly defined and validated against matching controls.
+\end{reviewpoint}
+
+\reviewer{y7qY}
+
+\begin{reviewpoint}{y7qY-1: Explain why DepthAnything2 wins delta/SILog metrics}{\answered}
+\textbf{Answer.} The exact comparison is given in CWVJ-5. RMSE/MAE emphasize absolute
+metric errors (and RMSE strongly weights large errors), whereas delta accuracies measure
+the fraction within multiplicative thresholds and SILog measures log-space consistency.
+The observed trade-off is compatible with fewer/smaller large metric errors but a less
+uniform multiplicative error distribution. This is an interpretation, not a demonstrated
+mechanism; per-depth-range and error-distribution plots are needed to establish why.
+\end{reviewpoint}
+
+\begin{reviewpoint}{y7qY-2: SSC is weak and video/MVS is a negative contribution}{\answered}
+\textbf{Answer.} We agree with the numerical characterization. The RGB-context
+configuration is strongest; video/MVS does not improve it. We will present this as a
+negative finding and investigate camera-motion alignment, direct MVS depth quality, and
+oracle-depth lifting before making a positive video-geometry claim.
+\end{reviewpoint}
+
+\begin{reviewpoint}{y7qY-3: Broken references and figures not cited}{\answered}
+\textbf{Answer.} We will restore the missing appendix in the distributed package, repair
+all labels/references, cite every figure in the main text, and run the release checks listed
+below. Claims whose support does not fit in the main paper will explicitly point to a
+correctly attached supplementary item.
+\end{reviewpoint}
+
+\begin{reviewpoint}{y7qY-4: Figure text may violate minimum font size}{\partialstatus}
+\textbf{Answer.} All figures must be regenerated as vector graphics where possible and
+inspected at final single/double-column size. Labels will use at least the venue's minimum
+font size. Screenshot-like tables should be replaced by native LaTeX tables or diagrams.
+\end{reviewpoint}
+
+\begin{reviewpoint}{y7qY-5: Equation 19 says scenes 1--8 while Table 4 says 1--9}{\answered}
+\textbf{Answer.} Table~4 is erroneous. The recorded protocol uses 40~m scenes 01--04 for
+validation and 05--08 for testing, hence scenes 01--08, not 01--09. We will correct the
+table and state the overlap limitation.
+\end{reviewpoint}
+
+\section{Priority experiment plan before WACV 2027 claims}
+
+\begin{enumerate}[leftmargin=*,label=\textbf{P\arabic*.}]
+  \item \textbf{Repair the plain-DPT control and isolate conditioning:} matched DPT,
+  altitude-only FiLM, intrinsics-only FiLM, and combined FiLM; same decoder, optimizer,
+  budget, split, and at least three seeds.
+  \item \textbf{Add a second frozen backbone:} DINOv3 (and optionally another strong
+  encoder) under a capacity- and protocol-matched probe/decoder comparison.
+  \item \textbf{Remove interpolation confounding:} create a scene-disjoint altitude
+  protocol and compare FiLM with an unconditioned control.
+  \item \textbf{Diagnose video geometry:} no alignment versus pose-warped/flow-aligned
+  temporal features; report by altitude and motion magnitude.
+  \item \textbf{Evaluate Pose-MVS directly:} standard depth metrics, qualitative errors,
+  depth-bin calibration, and downstream SSC with predicted versus oracle depth.
+  \item \textbf{Quantify uncertainty:} multi-seed mean/std and paired scene-level or
+  bootstrap intervals for all headline comparisons.
+  \item \textbf{Explain SSC failures:} accessible per-class and altitude tables, class
+  frequencies, SC-versus-SSC analysis, and geometry/context/lifting controls.
+  \item \textbf{Report computational cost:} parameters, GPU-hours, peak memory, latency,
+  throughput, and a precise statement about whether onboard deployment was evaluated.
+\end{enumerate}
+
+\section{Paper-release checklist learned from ACCV}
+
+\begin{itemize}[leftmargin=*]
+  \item Build the exact upload artifact from a clean checkout; do not assume local
+  appendix files are included.
+  \item Search the compiled source/log/PDF for unresolved references, citations, ``??'',
+  placeholder text, missing files, and overfull content.
+  \item Cross-check every table caption against its actual rows, metrics, highlighting,
+  split, units, and cited source.
+  \item Ensure every figure/table is cited, legible at final size, and communicates a
+  scientific point rather than serving as an experiment tracker.
+  \item Keep a claim-to-evidence ledger: each abstract/contribution/conclusion claim maps
+  to a main-paper or accessible supplementary table/figure.
+  \item Distinguish observation, controlled ablation, and causal conclusion. Do not
+  attribute an effect to FiLM, video, MVS, or V-JEPA without the corresponding control.
+  \item Report negative results and uncertainty; do not promote a single-run numerical
+  margin to a general conclusion.
+\end{itemize}
+
+\section{Candidate WACV 2027 framing}
+
+The strongest defensible direction is not ``a new SSC architecture.'' It is a controlled,
+multi-backbone study of when frozen visual features transfer from aerial metric depth to
+semantic scene completion, and why that transfer can fail. The ACCV result supplies the
+initial observation: frozen V-JEPA~2.1 plus a conditioned dense decoder is competitive in
+absolute metric-depth errors, yet video/MVS and stronger depth do not automatically yield
+better SSC. The new WACV experiments should turn that observation into evidence by adding
+matched backbones, conditioning ablations, scene-disjoint generalization, motion-aware
+video controls, direct MVS evaluation, oracle lifting, and uncertainty.
+
+\end{document}
