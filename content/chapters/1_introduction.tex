@@ -1,3 +1,28 @@
 \section{Introduction}
+\label{sec:introduction}
 
-Write the introduction for the target conference paper.
+Aerial 3D scene understanding is central to autonomous uncrewed aerial vehicle (UAV) operation in cargo delivery, search and rescue, inspection, and human-UAV collaboration. In these settings, a perception system must infer not only visible image semantics, but also metric depth, free space, and the semantic occupancy of partially observed volumes. RGB cameras are attractive for UAVs because they are lightweight, inexpensive, and compatible with strict size, weight, and power constraints. However, monocular 3D perception remains difficult: image formation collapses scale, depth, and occlusion into a two-dimensional signal, and aerial views introduce altitude-dependent scale changes, oblique/top-down viewpoints, weak texture, and occlusion patterns that differ from ground-level driving scenes.
+
+Most progress in semantic scene completion (SSC) and camera-based 3D perception has been driven by indoor and autonomous-driving benchmarks. SSCNet introduced semantic completion from depth input \cite{song2017sscnet}; MonoScene extended the task to monocular RGB \cite{cao2022monoscene}; and subsequent methods such as VoxFormer \cite{li2023voxformer}, TPVFormer \cite{huang2023tpvformer}, SurroundOcc \cite{wei2023surroundocc}, OpenOccupancy \cite{wang2023openoccupancy}, CGFormer \cite{yu2024cgformer}, and FoundationSSC \cite{chen2025foundationssc} improved view transformation, voxel attention, and semantic-geometric fusion. These designs demonstrate the value of explicit 3D representations.
+
+OccuFly \cite{gross2026occufly} enables a focused study of this transfer problem. It provides aerial RGB images, metric depth maps, camera calibration, poses, altitude metadata, and semantic occupancy grids across multiple scenes and flight heights. Unlike 2D UAV segmentation datasets such as UAVid \cite{lyu2020uavid} or reconstruction-oriented resources such as UrbanScene3D \cite{lin2022urbanscene3d}, OccuFly supports joint evaluation of monocular depth estimation (MDE), multiview geometry, and SSC from real aerial observations. We use it to ask whether modern foundation representations provide transferable geometric and semantic priors for UAV 3D perception, and whether calibrated neighboring views improve SSC beyond monocular depth priors.
+
+We investigate frozen V-JEPA~2.1 \cite{murlabadia2026vjepa21} image and video features for aerial MDE and depth-aware SSC, and add frozen DINOv3 \cite{simeoni2025dinov3} controls under the same protocol. V-JEPA-style models learn by predicting latent representations rather than reconstructing pixels \cite{bardes2024vjepa,assran2025vjepa2}; V-JEPA~2.1 further emphasizes dense predictive supervision, deep self-supervision, and unified image/video tokenization. DINOv3 is a particularly relevant control because it targets dense image transfer and includes aerial imagery in its evaluation. We freeze every backbone and vary only the decoder, metadata conditioning, temporal adapter, or lifting mechanism. Claims specific to V-JEPA are made only where the matched DINOv3 control differs; shared behavior is reported as a property of large frozen self-supervised ViTs.
+
+Our evaluation has three parts. First, we compare linear probes, DPT-style multiscale decoders \cite{ranftl2021dpt}, Simple Feature Pyramid (SFP) adapters inspired by ViTDet \cite{li2022vitdet}, and Feature-wise Linear Modulation (FiLM) \cite{perez2018film} using altitude and camera intrinsics. This separates linear depth accessibility, dense reconstruction capacity, final-layer pyramid adaptation, and metric scale conditioning. Second, we compare RGB features with spatio-temporal V-JEPA~2.1 video features using a dense temporal-attention adapter that converts tubelet tokens into target-frame maps. Third, we evaluate SSC variants inspired by CGFormer and FoundationSSC, replacing or augmenting their geometry pathways with V-JEPA-derived depth probabilities and a pose-aware multiview stereo (MVS) cost-volume branch based on calibrated UAV views.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{content/images/overview/end_to_end_architecture_generalized.png}
+\caption{Generalized end-to-end architecture of the controlled experiment space. RGB images or video clips and camera metadata are processed by frozen visual foundation backbones, task-specific depth and geometry modules, depth-aware voxel lifting, and semantic scene-completion heads to produce metric depth, occupancy, and semantic voxel predictions.}
+\label{fig:end_to_end_overview}
+\end{figure*}
+
+Figure~\ref{fig:end_to_end_overview} gives the complete data flow, from RGB/video frames and calibration through frozen tokens, depth decoding, lifting, and semantic completion. Our contributions are:
+\begin{itemize}
+    \item A matched frozen-backbone study of V-JEPA~2.1 and DINOv3 for aerial metric depth, separating backbone effects from decoder effects.
+    \item A controlled comparison of last-layer linear probes, four-level DPT, final-layer SFP, and altitude/intrinsics-conditioned FiLM-DPT; an anomalous historical DPT result is replaced by a reproducible rerun.
+    \item An analysis of spatio-temporal feature transfer through dense temporal attention over V-JEPA~2.1 video tokens.
+    \item A depth-to-SSC study that injects V-JEPA-derived depth maps and depth distributions into CGFormer- and FoundationSSC-inspired aerial SSC variants.
+    \item A diagnostic SSC study, including per-class results, that tests monocular and calibrated multiview geometry without claiming a new general SSC architecture.
+\end{itemize}

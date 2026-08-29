@@ -1,0 +1,19 @@
+\section{Exploratory Altitude Interpolation}
+\label{app:altitude_interpolation}
+
+Table~\ref{tab:occufly_depth_altitude_table12} records the historical altitude-interpolation diagnostic. Training uses 30 and 50~m samples, while evaluation uses 40~m samples. Because scenes recur across the protocol and only one conditioned method was evaluated, this is not a causal FiLM ablation and is not used to support the main conditioning claim.
+
+\begin{table}[t]
+\centering
+\caption{Exploratory altitude-interpolation result. The protocol is not scene-disjoint and contains no matched unconditioned control.}
+\label{tab:occufly_depth_altitude_table12}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrrrrr}
+\toprule
+Method & $\delta_1 \uparrow$ & $\delta_2 \uparrow$ & $\delta_3 \uparrow$ & AbsRel $\downarrow$ & RMSE $\downarrow$ & MAE $\downarrow$ & SILog $\downarrow$ \\
+\midrule
+V-JEPA 2.1 RGB FiLM-DPT & 0.9653 & 0.9997 & 0.9999 & 0.1021 & 4.7071 & 3.9570 & 0.1196 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

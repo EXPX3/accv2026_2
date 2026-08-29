@@ -1,3 +1,104 @@
-\section{Experiments}
+\definecolor{bestmiou}{RGB}{255,229,236}
+\definecolor{bestiou}{RGB}{246,238,214}
+\newcommand{\fsscrgbdirect}{FSSC RGB ctx DPT, depth FiLM-DPT}
+\newcommand{\fsscrgbfilm}{FSSC RGB ctx FiLM-DPT, depth FiLM-DPT}
+\newcommand{\fsscvidmvs}{FSSC video ctx DTA-DPT, depth DTA-MVS}
+\newcommand{\fsscvidfilmmvs}{FSSC video ctx DTA-DPT, depth DTA-FiLM-MVS}
 
-Write the experimental setup and results for the target conference paper.
+\section{Experimental Setup and Results}
+
+\subsection{Dataset and Tasks}
+We evaluate monocular depth estimation (MDE) and semantic scene completion (SSC) on OccuFly~\cite{gross2026occufly}. The standard split uses scenes 01--05 for training, scenes 06--07 for validation, and scenes 08--09 for testing across altitudes of 30, 40, and 50~m. The depth split contains 14,804 training frames, 1,965 validation frames, and 3,842 test frames. RGB inputs are resized to $384\times384$; metric depth is clipped to $[0.001,80]$~m and evaluated only over finite positive pixels that remain valid after mask-aware resizing. Video variants use consecutive frame-index neighborhoods because the released preprocess files provide frame indices and poses but no measured capture FPS.
+
+For SSC, OccuFly labels are defined on a $192\times128\times128$ voxel grid in WHD order. The grid spans $x\in[-48,48]$~m, $y\in[-32,32]$~m, and $z\in[0,64]$~m, with 0.5~m voxels. Unless stated otherwise, experiments are run on an NVIDIA DGX node with 8 NVIDIA H100 80GB GPUs.
+
+\paragraph{Controlled protocol and cost.}
+Backbones are frozen; training updates only the named head. The matched V-JEPA/DINO comparisons use the same input resolution, official split, seed 0, per-GPU batch size 1 (global batch 8), 20-epoch budget, loss, and checkpoint criterion. Feature levels are matched by relative transformer depth. Exact decoder equality is impossible because V-JEPA~2.1 and DINOv3 expose 1664- and 1280-channel tokens: the corresponding linear heads contain 429,568 and 330,496 trainable parameters. DINOv3 ViT-H+/16 contains 840.6M frozen parameters. We report this deviation rather than projecting one backbone through an extra unmatched adapter. All current results are single-seed; margins are treated as descriptive until matched seeds are completed. Eight H100s accelerate the frozen-feature protocol but are not an onboard deployment claim.
+
+\subsection{MDE Benchmarking Results}
+
+Table~\ref{tab:mde_comparison} compares depth models on the standard OccuFly test split. We distinguish final test metrics from validation RMSE throughout. The historical plain-DPT row (11.471~m) was anomalous and its raw checkpoint is no longer auditable; we therefore replace it with the reproducible matched rerun (6.730~m). This correction reverses the earlier, implausible ordering: four-level DPT now improves over the last-layer linear probe. Under the matched FiLM-DPT protocol, DINOv3 reaches 4.358~m RMSE versus 4.770~m for V-JEPA~2.1, an 8.6\% reduction. DINOv3 also improves AbsRel, MAE, SILog, and $\delta_1$. This shows that the decoder and camera conditioning transfer across large frozen ViTs and that the strongest MDE result is not specific to V-JEPA~2.1. The DINOv3 linear-probe control is still pending and is kept visibly incomplete rather than inferred from the FiLM-DPT result.
+
+\begin{table}[t]
+\centering
+\caption{OccuFly standard-test MDE. In-house rows use frozen backbones at $384^2$ resolution and the official scene split. DINOv3 FiLM-DPT matches the V-JEPA FiLM-DPT training protocol; its linear probe remains pending. Published DepthAnything2-OccuFly values follow OccuFly~\cite{gross2026occufly}. Best values are bolded per metric among completed rows.}
+\label{tab:mde_comparison}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrrrrr}
+\toprule
+Method & $\delta_1 \uparrow$ & $\delta_2 \uparrow$ & $\delta_3 \uparrow$ & AbsRel $\downarrow$ & RMSE $\downarrow$ & MAE $\downarrow$ & SILog $\downarrow$ \\
+\midrule
+V-JEPA 2.1 linear probe & 0.651 & 0.959 & 0.997 & 0.188 & 7.795 & 6.447 & 0.225 \\
+V-JEPA 2.1 four-level DPT & 0.747 & 0.970 & 0.997 & 0.162 & 6.730 & 5.411 & 0.200 \\
+V-JEPA 2.1 FiLM-DPT & 0.816 & 0.970 & 0.998 & 0.131 & 4.770 & 3.457 & 0.166 \\
+DINOv3 linear probe & -- & -- & -- & -- & \dinoLinearRMSE & -- & \dinoLinearSILog \\
+DINOv3 FiLM-DPT & \textbf{0.848} & 0.968 & 0.998 & \textbf{0.121} & \textbf{4.358} & \textbf{3.209} & 0.161 \\
+Pose-MVS (V-JEPA 2.1 video, pose-warped) & -- & -- & -- & -- & -- & -- & -- \\
+\midrule
+DepthAnything2-OccuFly~\cite{gross2026occufly} & \textbf{0.834} & \textbf{0.976} & \textbf{0.999} & 0.134 & 4.844 & 4.193 & \textbf{0.112} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The previous altitude-interpolation table contained one method and reused scenes across altitude partitions, so it could not isolate conditioning from scene memorization. We retain that result only as an explicitly exploratory appendix diagnostic (Appendix Table~\ref{tab:occufly_depth_altitude_table12}); it is not used to support the FiLM claim. A valid causal comparison requires matched FiLM/no-FiLM heads and scene-disjoint training and testing.
+
+Appendix Table~\ref{tab:mde_comparison_by_altitude} shows that the video FiLM-DPT branch is strongest at 30~m, while the RGB FiLM-DPT branch is stronger at 40~m and 50~m. The corresponding scene-wise breakdown is provided in Appendix Table~\ref{tab:mde_comparison_by_scene}: video helps on scene\_08, but RGB FiLM-DPT is stronger on scene\_09.
+
+\subsection{SSC Benchmarking Results}
+
+\paragraph{RQ4: Is low SSC accuracy primarily a geometry or taxonomy problem?}
+OccuFly is extremely imbalanced: empty voxels dominate the grid, building is the largest occupied class, and several safety-relevant classes have only negligible support. Consequently, aggregate voxel accuracy can remain high while macro semantic IoU is low. Similar-looking structures further fragment supervision across fine labels (e.g., road/walkway/parking surfaces, or building/roof/construction), so errors can reflect semantic ambiguity in addition to lifting error. We therefore report SC IoU, GT-present SSC mIoU, fixed-denominator mIoU, frequency-weighted IoU, and per-class support rather than interpreting one headline number alone.
+
+Table~\ref{tab:ssc_overall_comparison} restores the complete earlier comparison alongside the newly verified VoxDet ablations. Superscript $\dagger$ identifies ACCV26-era results produced by the earlier evaluator; the unmarked VoxDet block is the canonical re-evaluation on one 3,842-frame manifest. We keep the protocols visibly separated rather than treating their absolute values as directly comparable. Pose-MVS is evaluated separately because its earlier checkpoint was unavailable. Because absolute SSC mIoU remains low and several margins are small, we interpret these experiments as diagnostics of geometry, lifting, and taxonomy rather than as a state-of-the-art claim.
+
+\begin{table}[t]
+\centering
+\caption{OccuFly test SSC comparison. $\dagger$ denotes results retained from the earlier ACCV26 evaluator; unmarked VoxDet rows use the canonical 3,842-frame re-evaluation, one global confusion matrix, GT-present non-empty-class mIoU, and ignore label 255 excluded. Architecture names expose the changed context, geometry, and optimization components.}
+\label{tab:ssc_overall_comparison}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrr}
+\toprule
+Method & SC IoU $\uparrow$ & SSC mIoU $\uparrow$ \\
+\midrule
+\multicolumn{3}{l}{\textit{Published OccuFly baselines}} \\
+Symphonies~\cite{jiang2024symphonies} & 13.68 & 0.58 \\
+DISC~\cite{liu2025disc} & 29.52 & 2.04 \\
+\midrule
+\multicolumn{3}{l}{\textit{Earlier ACCV26 context--geometry variants ($\dagger$)}} \\
+CGFormer + DAV2 depth prior$^\dagger$ & 36.77 & 3.05 \\
+CGFormer + V-JEPA FiLM-DPT depth prior$^\dagger$ & 36.51 & 3.31 \\
+FSSC: RGB-DPT context + FiLM-DPT depth$^\dagger$ & 37.68 & 3.46 \\
+FSSC: FiLM-DPT context + FiLM-DPT depth$^\dagger$ & 35.47 & 1.73 \\
+FSSC: video DTA-DPT context + DTA-MVS depth$^\dagger$ & 24.55 & 0.17 \\
+FSSC: video DTA-DPT context + DTA-FiLM-MVS depth$^\dagger$ & 32.55 & 2.36 \\
+\midrule
+\multicolumn{3}{l}{\textit{Canonical VoxDet component ablations}} \\
+CGFormer + DAV2 depth prior & 9.93 & 1.37 \\
+VoxDet: monocular depth only & 27.09 & 1.87 \\
+FSSC: RGB-DPT context + FiLM-DPT depth & 34.42 & 3.48 \\
+VoxDet + ResNet semantic context & 38.85 & 2.85 \\
+VoxDet + V-JEPA DPT semantic context & 38.87 & 3.47 \\
+VoxDet + V-JEPA 2.1 FiLM-DPT depth + full-res VoxNT + long-tail loss + scheduled depth gradients & \textbf{45.77} & \textbf{4.62} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph{VoxDet/VoxNT finding.}
+VoxNT predicts six-direction offsets toward local semantic structure and supplies a geometry-aware auxiliary signal before the final 3D decoding. The strongest verified configuration---\emph{VoxDet + V-JEPA 2.1 FiLM-DPT depth + full-res VoxNT + long-tail loss + scheduled depth gradients}---also uses cosine optimization. Relative to the plain FSSC RGB-DPT/FiLM-DPT system, it raises SC IoU from 34.42 to 45.77 and SSC mIoU from 3.48 to 4.62. The larger completion gain than semantic gain is consistent with VoxNT improving local occupied structure while rare-class recognition remains limited by supervision.
+
+\paragraph{UAV11 remapping diagnostic.}
+We additionally merge the 21 occupied labels into ten UAV-oriented semantic groups plus empty (UAV11): constructed structure, transport surface, natural ground, low vegetation, tree, ground/construction obstacle, vulnerable road user, vehicle, thin infrastructure, and water. With the full-res VoxNT, long-tail-loss, scheduled-depth-gradient architecture trained from scratch, the best validation SSC mIoU increases from 5.64 on the original fine taxonomy to 9.32 on UAV11; validation SC IoU is 29.42. This is not a like-for-like benchmark improvement because the label space changes. It instead demonstrates that part of the low fine-class mIoU comes from sparse support and visually overlapping subclasses. Rare merged groups can remain unresolved---the UAV11 vehicle group has only 53 validation voxels---so remapping reduces, but does not remove, the long-tail problem. Full mappings, supports, and per-class scores are provided in the supplement.
+
+\paragraph{RQ3: Where do temporal features help?}
+Across the current MDE and SSC geometry experiments, temporal aggregation has only a small and inconsistent effect. Video FiLM-DPT is strongest at 30 m and on scene 08, but RGB is stronger at 40/50 m and on scene 09. Uncompensated camera motion makes snapshot-token aggregation an ambiguous test of temporal representation quality; Pose-MVS therefore preserves view identity and explicitly warps source features with calibration. We do not conclude that temporal features are unhelpful in general. OccuFly provides short sampled neighborhoods rather than continuous video, so benefits may emerge for dense streams with stable temporal correspondence, motion history, or dynamic cues.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.98\linewidth]{content/images/ssc/scene_08_50_000097_mde_appended_ssc.png}
+\caption{Qualitative OccuFly depth and SSC example for scene 08 at 50~m altitude, frame 000097.}
+\label{fig:occufly_ssc_qualitative_scene_08_50_000097}
+\end{figure}
+
+\FloatBarrier

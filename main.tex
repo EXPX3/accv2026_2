@@ -1,48 +1,20 @@
-\documentclass[runningheads]{llncs}
+% WACV 2027 first-version manuscript.
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[review,applications]{wacv}
+\input{preamble}
+\definecolor{wacvblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=wacvblue]{hyperref}
 
-% ---------------------------------------------------------------
-% ACCV/ECCV-style package setup.
-%
-% Keep organizer-provided template files unchanged unless a specific
-% conference version requires an official update.
-%
-% TODO REVIEW: Set the conference year and submission ID for the target venue.
-\usepackage[review,year=2026,ID=*****]{accv}
-% TODO FINAL: Use the non-review style for camera-ready versions.
-%\usepackage{accv}
-
-% Commonly used abbreviations (\eg, \ie, \etc, \cf, \etal, etc.).
-\usepackage{accvabbrv}
-
-\usepackage{graphicx}
-\graphicspath{{content/images/}}
-\usepackage{booktabs}
-
-% It is strongly recommended to use hyperref for review versions.
-\usepackage[pagebackref,breaklinks,colorlinks,citecolor=accvblue]{hyperref}
-
-% Support for ORCID icons in camera-ready author lists.
-\usepackage{orcidlink}
+\def\wacvPaperID{*****}
+\def\confName{WACV}
+\def\confYear{2027}
+\title{Exploring spatio-temporal features of Foundation Models for Aerial Depth and Semantic Scene Completion}
+\author{Anonymous \confName~submission\\Paper ID \wacvPaperID}
 
 \begin{document}
-
-\title{Paper Title}
-
-% TODO FINAL: Replace with the camera-ready author list and affiliations.
-\author{First Author\inst{1}\orcidlink{0000-0000-0000-0000} \and
-Second Author\inst{1}\orcidlink{0000-0000-0000-0000}}
-
-\authorrunning{F.~Author et al.}
-
-\institute{Institution Name\\
-\email{contact@example.com}}
-
 \maketitle
-
 \begin{abstract}
-Write a concise abstract for the target conference.
-
-\keywords{Keyword One \and Keyword Two \and Keyword Three}
+Aerial 3D perception must recover metric geometry and semantic occupancy despite altitude-dependent scale, oblique viewpoints, and limited onboard sensing. We study what frozen image and video foundation representations transfer to monocular depth estimation (MDE) and semantic scene completion (SSC) on OccuFly. Under a common $384\!\times\!384$ protocol, we progress from last-layer linear probes to four-level DPT decoding, altitude/intrinsics-conditioned FiLM-DPT, dense temporal aggregation, and pose-aware multiview lifting. We additionally introduce matched frozen DINOv3 controls to separate conclusions about V-JEPA~2.1 from properties shared by large self-supervised ViTs. Correcting an anomalous historical DPT baseline changes the central interpretation: multi-level decoding improves over linear probing, while FiLM must be assessed against a healthy, capacity-matched DPT rather than against a failed run. The matched DINOv3 FiLM-DPT reaches 4.358~m test RMSE, compared with 4.770~m for V-JEPA~2.1 FiLM-DPT, 6.730~m for the corrected V-JEPA plain DPT, and 7.795~m for its linear probe. SSC experiments show that geometry, lifting, and semantic context must remain aligned: full-resolution VoxNT and long-tail optimization raise SC IoU/SSC mIoU from 34.42/3.48 to 45.77/4.62. A UAV-oriented 11-class remapping reaches 9.32 validation mIoU, indicating that sparse, visually overlapping fine classes explain part---but not all---of the low semantic score. Temporal aggregation is inconsistent on snapshot neighborhoods; its value may require continuous video with explicit correspondence. Our study therefore characterizes where frozen representations expose aerial geometry, where decoder structure and camera metadata matter, and which apparent gains do not survive controlled comparison.
 \end{abstract}
 
 \input{content/chapters/1_introduction}
@@ -52,7 +24,13 @@ Write a concise abstract for the target conference.
 \input{content/chapters/5_conclusion}
 
 \clearpage
-\bibliographystyle{splncs04}
-\bibliography{content/references}
+\appendix
+\input{content/appendix/mde_scene_occufly_table}
+\input{content/appendix/depth_altitude_occufly_table12}
+\input{content/appendix/ssc_detailed_results}
 
+{\small
+\bibliographystyle{ieeenat_fullname}
+\bibliography{content/references}
+}
 \end{document}

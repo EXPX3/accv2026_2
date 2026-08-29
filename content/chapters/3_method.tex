@@ -1,3 +1,34 @@
 \section{Method}
+\label{sec:method}
 
-Write the method for the target conference paper.
+We separate four questions: whether geometry is accessible from a frozen representation (RQ1), whether metadata helps beyond decoder capacity (RQ2), whether calibrated motion compensation improves temporal geometry (RQ3), and whether SSC is limited by depth, lifting, or semantic taxonomy (RQ4). Each OccuFly sample provides RGB $I_t$, metric depth $D_t$, valid mask $M_t$, occupancy labels $Y_t$, intrinsics $K_t$, altitude $h_t$, and world-to-camera pose $T_t$. Unless stated otherwise, backbones are frozen and only the named head is trained.
+
+\subsection{Frozen features and monocular depth}
+V-JEPA~2.1 ViT-G receives $384\times384$ images and exposes $24\times24$, 1664-channel maps from blocks $\{11,23,37,47\}$. The linear probe uses only block 47 and a batch-normalized $1\times1$ head. Four-level DPT reassembles and fuses all selected blocks; SFP-DPT instead creates a pyramid from the final block. Matched DINOv3 controls use the same split, resolution, training budget, objective, and relative transformer depths.
+
+All heads predict $K_D=256$ metric-depth logits $z$ and the expectation
+\begin{equation}
+ p_{k,u,v}=\operatorname{softmax}_k z_{k,u,v},\qquad
+ \hat D_{u,v}=\sum_{k=1}^{K_D}p_{k,u,v}d_k .
+ \label{eq:depth_estimate}
+\end{equation}
+FiLM tests camera conditioning without changing the backbone. A small MLP embeds
+\begin{equation}
+ m_t=[(h_t-40)/10, f_x/W,f_y/H,c_x/W-0.5,c_y/H-0.5],
+\end{equation}
+and modulates each DPT level $R_l$ as $\widetilde R_l=R_l\odot(1+\gamma_l(m_t))+\beta_l(m_t)$. Zero-initialized affine projections begin at the unconditioned decoder. Thus DPT versus FiLM-DPT is the relevant capacity-matched comparison; the anomalous historical DPT run is excluded.
+
+\subsection{Temporal aggregation and pose-aware MVS}
+A four-frame target-centered neighborhood is encoded as video tokens. Dense Temporal Attention (DTA) learns one target map per spatial cell from the two temporal tubelets, with a residual initialized near temporal mean pooling. Because frame-index neighbors move with the UAV and timestamps are unavailable, DTA alone does not establish correspondence. We therefore treat it as an unaligned temporal baseline.
+
+Pose-MVS retains separate target/source features and explicitly compensates camera motion. For target pixel $\mathbf u$ and candidate depth $d_k$, a 3D point is projected into source view $i$ by
+\begin{equation}
+ \mathbf q_{i,k}=\pi\left(K_iT_{t\rightarrow i}[d_kK_t^{-1}\mathbf u;1]\right).
+ \label{eq:mvs_projection}
+\end{equation}
+We sample the source feature at $\mathbf q_{i,k}$, correlate it with the target feature, aggregate two source views, and regularize the resulting plane-sweep volume with a small 3D CNN. Softmax over the same 256 bins yields both direct metric depth and the probability distribution used for lifting. Pose-MVS-FiLM additionally conditions the output logits on $m_t$. Direct MDE metrics distinguish a weak matcher from a failure in later SSC fusion.
+
+\subsection{Depth-to-SSC and VoxNT}
+SSC separates semantic context from geometry. A monocular or Pose-MVS depth distribution lifts 2D context into the $192\times128\times128$ OccuFly grid; FoundationSSC/CGFormer-style 3D fusion then predicts empty plus semantic classes. Oracle-depth lifting bounds the loss attributable to depth.
+
+VoxDet variants add a spatial encoder, three-dimensional feature pyramid, and VoxNT supervision. VoxNT predicts six directional offsets toward nearby semantic structure, providing a local geometric target before final voxel classification. Our variants isolate context source, volume width, corrected full-resolution VoxNT targets, long-tail semantic losses, and scheduled depth gradients. The best configuration uses the V-JEPA~2.1 FiLM-DPT depth checkpoint and combines full-resolution VoxNT, long-tail focal/dice objectives, gradual depth-gradient release, and cosine optimization. UAV11 retains empty and merges the 21 occupied labels into ten UAV-oriented groups; it tests how much fine-class sparsity and semantic overlap depress macro IoU, but is not directly comparable to the original taxonomy. Full architectural equations, tensor contracts, taxonomy maps, and per-class supports are supplied separately.
