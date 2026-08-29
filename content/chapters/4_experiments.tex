@@ -17,11 +17,11 @@ Backbones are frozen; training updates only the named head. The matched V-JEPA/D
 
 \subsection{MDE Benchmarking Results}
 
-Table~\ref{tab:mde_comparison} compares depth models on the standard OccuFly test split. We distinguish final test metrics from validation RMSE throughout. The historical plain-DPT row (11.471~m) was anomalous and its raw checkpoint is no longer auditable; we therefore replace it with the reproducible matched rerun (6.730~m). This correction reverses the earlier, implausible ordering: four-level DPT now improves over the last-layer linear probe. Under the matched FiLM-DPT protocol, DINOv3 reaches 4.358~m RMSE versus 4.770~m for V-JEPA~2.1, an 8.6\% reduction. DINOv3 also improves AbsRel, MAE, SILog, and $\delta_1$. This shows that the decoder and camera conditioning transfer across large frozen ViTs and that the strongest MDE result is not specific to V-JEPA~2.1. The DINOv3 linear-probe control is still pending and is kept visibly incomplete rather than inferred from the FiLM-DPT result.
+Table~\ref{tab:mde_comparison} compares depth models on the standard OccuFly test split. We distinguish final test metrics from validation RMSE throughout. The historical plain-DPT row (11.471~m) was anomalous and its raw checkpoint is no longer auditable; we therefore replace it with the reproducible matched rerun (6.730~m). This correction reverses the earlier, implausible ordering: four-level DPT now improves over the last-layer linear probe. Under the matched FiLM-DPT protocol, DINOv3 reaches 4.358~m RMSE versus 4.770~m for V-JEPA~2.1, an 8.6\% reduction. DINOv3 also improves AbsRel, MAE, SILog, and $\delta_1$. The DINOv3 linear probe reaches 6.097~m RMSE, between the V-JEPA linear probe and the V-JEPA four-level DPT head, confirming that decoder capacity remains an important factor even with stronger frozen features. Overall, these results show that the decoder and camera conditioning transfer across large frozen ViTs and that the strongest MDE result is not specific to V-JEPA~2.1.
 
 \begin{table}[t]
 \centering
-\caption{OccuFly standard-test MDE. In-house rows use frozen backbones at $384^2$ resolution and the official scene split. DINOv3 FiLM-DPT matches the V-JEPA FiLM-DPT training protocol; its linear probe remains pending. Published DepthAnything2-OccuFly values follow OccuFly~\cite{gross2026occufly}. Best values are bolded per metric among completed rows.}
+\caption{OccuFly standard-test MDE. In-house rows use frozen backbones at $384^2$ resolution and the official scene split. DINOv3 rows match the V-JEPA training protocol for the corresponding head type. Published DepthAnything2-OccuFly values follow OccuFly~\cite{gross2026occufly}. Best values are bolded per metric among completed rows.}
 \label{tab:mde_comparison}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{lrrrrrrr}
@@ -31,9 +31,8 @@ Method & $\delta_1 \uparrow$ & $\delta_2 \uparrow$ & $\delta_3 \uparrow$ & AbsRe
 V-JEPA 2.1 linear probe & 0.651 & 0.959 & 0.997 & 0.188 & 7.795 & 6.447 & 0.225 \\
 V-JEPA 2.1 four-level DPT & 0.747 & 0.970 & 0.997 & 0.162 & 6.730 & 5.411 & 0.200 \\
 V-JEPA 2.1 FiLM-DPT & 0.816 & 0.970 & 0.998 & 0.131 & 4.770 & 3.457 & 0.166 \\
-DINOv3 linear probe & -- & -- & -- & -- & \dinoLinearRMSE & -- & \dinoLinearSILog \\
+DINOv3 linear probe & 0.782 & 0.980 & 0.998 & 0.156 & 6.097 & 5.066 & 0.187 \\
 DINOv3 FiLM-DPT & \textbf{0.848} & 0.968 & 0.998 & \textbf{0.121} & \textbf{4.358} & \textbf{3.209} & 0.161 \\
-Pose-MVS (V-JEPA 2.1 video, pose-warped) & -- & -- & -- & -- & -- & -- & -- \\
 \midrule
 DepthAnything2-OccuFly~\cite{gross2026occufly} & \textbf{0.834} & \textbf{0.976} & \textbf{0.999} & 0.134 & 4.844 & 4.193 & \textbf{0.112} \\
 \bottomrule
@@ -67,7 +66,7 @@ DISC~\cite{liu2025disc} & 29.52 & 2.04 \\
 \midrule
 \multicolumn{3}{l}{\textit{Earlier ACCV26 context--geometry variants ($\dagger$)}} \\
 CGFormer + DAV2 depth prior$^\dagger$ & 36.77 & 3.05 \\
-CGFormer + V-JEPA FiLM-DPT depth prior$^\dagger$ & 36.51 & 3.31 \\
+CGFormer + FiLM-DPT depth prior$^\dagger$ & 36.51 & 3.31 \\
 FSSC: RGB-DPT context + FiLM-DPT depth$^\dagger$ & 37.68 & 3.46 \\
 FSSC: FiLM-DPT context + FiLM-DPT depth$^\dagger$ & 35.47 & 1.73 \\
 FSSC: video DTA-DPT context + DTA-MVS depth$^\dagger$ & 24.55 & 0.17 \\
@@ -75,18 +74,17 @@ FSSC: video DTA-DPT context + DTA-FiLM-MVS depth$^\dagger$ & 32.55 & 2.36 \\
 \midrule
 \multicolumn{3}{l}{\textit{Canonical VoxDet component ablations}} \\
 CGFormer + DAV2 depth prior & 9.93 & 1.37 \\
-VoxDet: monocular depth only & 27.09 & 1.87 \\
 FSSC: RGB-DPT context + FiLM-DPT depth & 34.42 & 3.48 \\
-VoxDet + ResNet semantic context & 38.85 & 2.85 \\
-VoxDet + V-JEPA DPT semantic context & 38.87 & 3.47 \\
-VoxDet + V-JEPA 2.1 FiLM-DPT depth + full-res VoxNT + long-tail loss + scheduled depth gradients & \textbf{45.77} & \textbf{4.62} \\
+VoxDet: ResNet context + FiLM-DPT depth & 38.85 & 2.85 \\
+VoxDet: RGB-DPT context + FiLM-DPT depth & 38.87 & 3.47 \\
+VoxDet: RGB-DPT context + FiLM-DPT depth + full-res VoxNT + long-tail loss + scheduled depth gradients & \textbf{44.82} & \textbf{4.35} \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
 \paragraph{VoxDet/VoxNT finding.}
-VoxNT predicts six-direction offsets toward local semantic structure and supplies a geometry-aware auxiliary signal before the final 3D decoding. The strongest verified configuration---\emph{VoxDet + V-JEPA 2.1 FiLM-DPT depth + full-res VoxNT + long-tail loss + scheduled depth gradients}---also uses cosine optimization. Relative to the plain FSSC RGB-DPT/FiLM-DPT system, it raises SC IoU from 34.42 to 45.77 and SSC mIoU from 3.48 to 4.62. The larger completion gain than semantic gain is consistent with VoxNT improving local occupied structure while rare-class recognition remains limited by supervision.
+VoxNT predicts six-direction offsets toward local semantic structure and supplies a geometry-aware auxiliary signal before the final 3D decoding. The strongest verified configuration---\emph{VoxDet + V-JEPA 2.1 FiLM-DPT depth + full-res VoxNT + long-tail loss + scheduled depth gradients}---also uses cosine optimization. Relative to the plain FSSC RGB-DPT/FiLM-DPT system, it raises SC IoU from 34.42 to 44.82 and SSC mIoU from 3.48 to 4.35. The larger completion gain than semantic gain is consistent with VoxNT improving local occupied structure while rare-class recognition remains limited by supervision.
 
 \paragraph{UAV11 remapping diagnostic.}
 We additionally merge the 21 occupied labels into ten UAV-oriented semantic groups plus empty (UAV11): constructed structure, transport surface, natural ground, low vegetation, tree, ground/construction obstacle, vulnerable road user, vehicle, thin infrastructure, and water. With the full-res VoxNT, long-tail-loss, scheduled-depth-gradient architecture trained from scratch, the best validation SSC mIoU increases from 5.64 on the original fine taxonomy to 9.32 on UAV11; validation SC IoU is 29.42. This is not a like-for-like benchmark improvement because the label space changes. It instead demonstrates that part of the low fine-class mIoU comes from sparse support and visually overlapping subclasses. Rare merged groups can remain unresolved---the UAV11 vehicle group has only 53 validation voxels---so remapping reduces, but does not remove, the long-tail problem. Full mappings, supports, and per-class scores are provided in the supplement.
